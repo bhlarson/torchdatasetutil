@@ -1,0 +1,84 @@
+#!/usr/bin/python3
+
+import os
+import sys
+import shutil
+import subprocess
+import copy
+import io
+import json
+import tempfile
+import argparse
+import time
+from datetime import datetime
+from zipfile import ZipFile
+from pymlutil.jsonutil import ReadDict, WriteDict
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Process arguments')
+
+    parser.add_argument('--debug','-d', action='store_true',help='Wait for debuggee attach')   
+    parser.add_argument('-debug_port', type=int, default=3300, help='Debug port')
+    parser.add_argument('-debug_listen', type=str, default='0.0.0.0', help='Default, accept any client')
+
+    parser.add_argument('-credentails', type=str, default='creds.yaml', help='Credentials file.')
+    parser.add_argument('-config', type=str, default='config/build.yaml', help='Configuration file')
+    parser.add_argument('-password', type=str, default=None, help='Output path')
+    parser.add_argument('-timeout', type=str, default='2m0s', help='Version number')
+
+    args = parser.parse_args()
+    return args
+
+def cmd(command):
+    print('$ '+command)
+    initial = datetime.now()
+    result = subprocess.call(command, shell=True)
+    dt = (datetime.now()-initial).total_seconds()
+    print('Complete {}s: {}={}'.format(dt, result, command))
+    return result
+
+def main(args):
+    initial = datetime.now()
+
+    creds = ReadDict(args.credentails)
+    config = ReadDict(args.config)
+    config['version'] += 1
+    WriteDict(config, args.config)
+    print("Create pymlutil version: {}".format(config['version']))
+
+    pwd = os.getcwd()
+
+    shutil.rmtree('dist/', ignore_errors=True)
+    os.mkdir('dist/')
+
+    cmdstr = "python3 setup.py sdist bdist_wheel"
+    result = cmd(cmdstr)
+
+    cmdstr = "twine upload dist/* -u {} -p {}".format(creds['pipy.org']['username'], creds['pipy.org']['password'])
+    result = cmd(cmdstr)
+
+    loaded_version = False
+    while not loaded_version:
+        time.sleep(5)
+        cmdstr = "pip3 install --upgrade pymlutil"
+        result = cmd(cmdstr)
+        from pymlutil.version import __version__
+        if __version__==config['version']:
+            loaded_version = True
+
+    dt = (datetime.now()-initial).total_seconds()
+    print("Setup version {} complete {}s".format(config['version'], dt))
+
+
+if __name__ == '__main__':
+    import argparse
+    args = parse_arguments()
+
+    if args.debug:
+        print("Wait for debugger attach")
+        import debugpy
+        debugpy.listen(address=(args.debug_listen, args.debug_port))
+        debugpy.wait_for_client() # Pause the program until a remote debugger is attached
+        print("Debugger attached")
+
+    main(args)
