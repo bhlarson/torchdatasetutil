@@ -233,7 +233,9 @@ def collate_fn(batch):
 default_loaders = [{'set':'train', 'dataset': 'data/coco/annotations/instances_train2017.json', 'image_path':'data/coco/train2017' , 'enable_transform':True},
                    {'set':'test', 'dataset': 'data/coco/annotations/instances_val2017.json', 'image_path':'data/coco/val2017', 'enable_transform':False}]
 
-def CreateDataLoaders(s3, bucket, class_dict, batch_size = 2, num_workers=0, cuda = True, loaders = default_loaders, 
+def CreateCocoLoaders(s3, bucket, class_dict, 
+                      batch_size = 2, shuffle=True, 
+                      num_workers=0, cuda = True, timeout=0, loaders = default_loaders, 
                       height=640, width=640, 
                       image_transform=None, label_transform=None, 
                       normalize=True, flipX=True, flipY=False, 
@@ -262,10 +264,13 @@ def CreateDataLoaders(s3, bucket, class_dict, batch_size = 2, num_workers=0, cud
         loader['batches'] =int(dataset.__len__()/batch_size)
         loader['length'] = loader['batches']*batch_size
 
-        loader['dataloader'] = torch.utils.data.DataLoader(dataset, 
-                                            batch_size=batch_size, 
+        loader['dataloader'] = torch.utils.data.DataLoader(dataset=dataset, 
+                                            batch_size=batch_size,
+                                            shuffle=shuffle,
+                                            drop_last=True,
                                             num_workers=num_workers, 
-                                            pin_memory=pin_memory, 
+                                            pin_memory=pin_memory,
+                                            timeout=timeout,
                                             collate_fn=collate_fn)         
 
     return loaders
@@ -274,9 +279,19 @@ def Test(args):
 
     s3, creds, s3def = Connect(args.credentails)
 
+    dataset_desc = s3.GetDict(s3def['sets']['dataset']['bucket'],args.dataset_train)
+    class_dictionary = s3.GetDict(s3def['sets']['dataset']['bucket'],args.class_dict) 
+    imUtil = ImUtil(dataset_desc, class_dictionary)
+    
     if args.test_iterator:
         os.makedirs(args.test_path, exist_ok=True)
-        store = CocoStore(s3, s3def['sets']['dataset']['bucket'], args.dataset_train, args.train_image_path, args.class_dict, imflags=args.imflags)
+        
+        store = CocoStore(s3, bucket=s3def['sets']['dataset']['bucket'], 
+                          dataset_desc=args.dataset_train, 
+                          image_paths=args.train_image_path, 
+                          class_dictionary=args.class_dict, 
+                          imflags=args.imflags)
+
         for i, iman in enumerate(store):
             img = store.MergeIman(iman['img'], iman['ann'])
             write_path = '{}cocostoreiterator{:03d}.png'.format(args.test_path, i)
@@ -285,14 +300,13 @@ def Test(args):
                 print ('test_iterator complete')
                 break
 
-
     if args.test_dataset:
 
         loaders_dfn = [{'set':'train', 'dataset': args.dataset_train, 'image_path': args.train_image_path, 'enable_transform':True},
                        {'set':'test', 'dataset':  args.dataset_val, 'image_path': args.val_image_path, 'enable_transform':False}]
 
-        loaders = CreateDataLoaders(s3=s3, 
-                                    bucket=s3def['sets']['dataset']['bucket'], 
+        loaders = CreateCocoLoaders(s3=s3, 
+                                    bucket=s3def['sets']['dataset']['bucket'],
                                     class_dict=args.class_dict, 
                                     batch_size=args.batch_size, 
                                     num_workers=args.num_workers, 
@@ -303,19 +317,18 @@ def Test(args):
         os.makedirs(args.test_path, exist_ok=True)
 
         for iDataset, loader in enumerate(loaders):
-            i = 0
-            while i < min(np.ceil(args.num_images/args.batch_size), loader['batches']):
-                images, train_labels, train_mean, train_stdev = next(iter(loader['dataloader']))
+            for i, data  in enumerate(loader['dataloader']):
+                images, labels, mean, stdev = data
                 images = images.cpu().permute(0, 2, 3, 1).numpy()
                 images = np.squeeze(images)
-                j = 0
-                while j < args.batch_size:
-                    train_labels[j].cpu().numpy()
-                    img = loader['dataloader'].dataset.store.MergeIman(images[j], train_labels[j].cpu().numpy(), train_mean[j].item(), train_stdev[j].item())
+                labels = labels.cpu().numpy()
+
+                for j in  range(args.batch_size):
+                    img = imUtil.MergeIman(images[j], labels[j], mean[j].item(), stdev[j].item())
                     write_path = '{}cocostoredataset{}{:03d}{:03d}.png'.format(args.test_path, loader['set'], i,j)
                     cv2.imwrite(write_path,img)
-                    j += 1
-                i += 1
+                if i > min(np.ceil(args.num_images/args.batch_size), loader['batches']):
+                    break
         print ('test_dataset complete')
 
     print('Test complete')
@@ -347,7 +360,6 @@ def parse_arguments():
     parser.add_argument('-width', type=int, default=640, help='Batch image width')
     parser.add_argument('-imflags', type=int, default=cv2.IMREAD_COLOR, help='cv2.imdecode flags')
     parser.add_argument('-cuda', type=bool, default=True)
-
 
     args = parser.parse_args()
     return args

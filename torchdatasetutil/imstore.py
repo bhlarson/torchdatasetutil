@@ -208,7 +208,9 @@ def collate_fn(batch):
 default_loaders = [{'set':'train', 'split':0.8, 'enable_transform':True},
                    {'set':'test', 'split':0.2, 'enable_transform':False}]
 
-def CreateDataLoaders(s3, bucket, dataset_dfn, class_dict, batch_size = 2, num_workers=0, cuda = True, loaders = default_loaders, 
+def CreateImageLoaders(s3, bucket, dataset_dfn, class_dict, 
+                      batch_size = 2,  
+                      num_workers=0, cuda = True, timeout=0, loaders = default_loaders, 
                       height=640, width=640, 
                       image_transform=None, label_transform=None, 
                       normalize=True, flipX=True, flipY=False, 
@@ -255,11 +257,12 @@ def CreateDataLoaders(s3, bucket, dataset_dfn, class_dict, batch_size = 2, num_w
             sampler = SubsetRandomSampler(indices[startIndex:split])
             startIndex = split
 
-            loader['dataloader'] = torch.utils.data.DataLoader(dataset, 
-                                                      batch_size=batch_size, 
-                                                      sampler=sampler, 
+            loader['dataloader'] = torch.utils.data.DataLoader(dataset=dataset, 
+                                                      batch_size=batch_size,
+                                                      sampler=sampler,
                                                       num_workers=num_workers, 
-                                                      pin_memory=pin_memory, 
+                                                      pin_memory=pin_memory,
+                                                      timeout=timeout,
                                                       collate_fn=collate_fn)         
 
     return loaders
@@ -268,21 +271,26 @@ def Test(args):
 
     s3, creds, s3def = Connect(args.credentails)
 
+    dataset_desc = s3.GetDict(s3def['sets']['dataset']['bucket'],args.dataset)
+    class_dictionary = s3.GetDict(s3def['sets']['dataset']['bucket'],args.class_dict) 
+    imUtil = ImUtil(dataset_desc, class_dictionary)
+
     if args.test_iterator:
         os.makedirs(args.test_path, exist_ok=True)
+
         store = ImagesStore(s3, s3def['sets']['dataset']['bucket'], args.dataset, args.class_dict)
+
         for i, iman in enumerate(store):
-            img = store.MergeIman(iman['img'], iman['ann'])
+            img = imUtil.MergeIman(iman['img'], iman['ann'])
             write_path = '{}imagesstoreiterator{:03d}.png'.format(args.test_path, i)
             cv2.imwrite(write_path,img)
             if i >= args.num_images:
                 print ('test_iterator complete')
                 break
 
-
     if args.test_dataset:
-        loaders = CreateDataLoaders(s3=s3, 
-                                    bucket=s3def['sets']['dataset']['bucket'], 
+        loaders = CreateImageLoaders(s3=s3, 
+                                    bucket=s3def['sets']['dataset']['bucket'],
                                     dataset_dfn=args.dataset, 
                                     class_dict=args.class_dict, 
                                     batch_size=args.batch_size, 
@@ -293,19 +301,18 @@ def Test(args):
         os.makedirs(args.test_path, exist_ok=True)
 
         for iDataset, loader in enumerate(loaders):
-            i = 0
-            while i < min(np.ceil(args.num_images/args.batch_size), loader['batches']):
-                images, train_labels, train_mean, train_stdev = next(iter(loader['dataloader']))
+            for i, data  in enumerate(loader['dataloader']):
+                images, labels, mean, stdev = data
                 images = images.cpu().permute(0, 2, 3, 1).numpy()
                 images = np.squeeze(images)
-                j = 0
-                while j < args.batch_size:
-                    train_labels[j].cpu().numpy()
-                    img = loader['dataloader'].dataset.store.MergeIman(images[j], train_labels[j].cpu().numpy(), train_mean[j].item(), train_stdev[j].item())
+                labels = labels.cpu().numpy()
+
+                for j in  range(args.batch_size):
+                    img = imUtil.MergeIman(images[j], labels[j], mean[j].item(), stdev[j].item())
                     write_path = '{}imagestoredataset{}{:03d}{:03d}.png'.format(args.test_path, loader['set'], i,j)
                     cv2.imwrite(write_path,img)
-                    j += 1
-                i += 1
+                if i > min(np.ceil(args.num_images/args.batch_size), loader['batches']):
+                    break
         print ('test_dataset complete')
 
     print('Test complete')

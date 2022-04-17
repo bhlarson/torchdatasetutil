@@ -130,3 +130,5 @@ dmypy.json
 
 creds.yaml
 creds.json
+
+datasets_test/
