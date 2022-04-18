@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
-import os
-import sys
+import os, sys
 import shutil
 import subprocess
 import copy
@@ -12,7 +11,10 @@ import argparse
 import time
 from datetime import datetime
 from zipfile import ZipFile
+
+from sympy import re
 from pymlutil.jsonutil import ReadDict, WriteDict
+from torchdatasetutil.version import VersionString
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Process arguments')
@@ -22,29 +24,66 @@ def parse_arguments():
     parser.add_argument('-debug_listen', type=str, default='0.0.0.0', help='Default, accept any client')
 
     parser.add_argument('-credentails', type=str, default='creds.yaml', help='Credentials file.')
-    parser.add_argument('-config', type=str, default='config/build.yaml', help='Configuration file')
+    parser.add_argument('-config', type=str, default='torchdatasetutil/build.yaml', help='Configuration file')
     parser.add_argument('-password', type=str, default=None, help='Output path')
-    parser.add_argument('-timeout', type=str, default='2m0s', help='Version number')
+    parser.add_argument('--message', '-m', type=str, default=None, help='Version get message')
+    parser.add_argument('--create', '-c', type=bool, default=False, help='Create library')
 
     args = parser.parse_args()
     return args
 
-def cmd(command):
+def cmd(command, check=False):
     print('$ '+command)
     initial = datetime.now()
-    result = subprocess.call(command, shell=True)
+    result = subprocess.run(command, shell=True, capture_output=True, check=check)
     dt = (datetime.now()-initial).total_seconds()
     print('Complete {}s: {}={}'.format(dt, result, command))
-    return result
+    return result.returncode, result.stderr, result.stdout
+
+def Archive(args, config):
+    result = 0
+    config['version']['patch'] += 1
+    version_str = VersionString(config)
+    WriteDict(config, args.config)
+
+    cmdstr = 'git add {}'.format(args.config)
+    cmd(cmdstr, check=True)
+
+    cmdstr = 'git commit -m "Tag version {}"'.format(version_str)
+    cmd(cmdstr, check=True)
+
+    cmdstr = 'git diff-index --quiet HEAD --;'
+    result, stderr, stdout = cmd(cmdstr)
+    if result != 0:
+        print ('Changes in working tree.  Please commit before creating a versioned repository.  Run "git status" for more information.')
+        return result, config, version_str
+    
+    if args.message is None:
+        description = "pymlutil version {}".format(version_str)
+    else:
+        description = args.description
+    cmdstr = 'git tag -a {} -m "{}"'.format(version_str,description )
+    cmd(cmdstr, check=True)
+
+    cmdstr = 'git push origin {}'.format(version_str)
+    cmd(cmdstr, check=True)
+
+    cmdstr = 'git push'
+    cmd(cmdstr, check=True)
+    
+    return result, config, version_str
 
 def main(args):
     initial = datetime.now()
 
     creds = ReadDict(args.credentails)
     config = ReadDict(args.config)
-    config['version'] += 1
-    WriteDict(config, args.config)
-    print("Create pymlutil version: {}".format(config['version']))
+
+    result, config, version_str = Archive(args, config)
+    if result:
+        return result
+
+    print("Create pymlutil version: {}".format(version_str))
 
     pwd = os.getcwd()
 
@@ -52,22 +91,31 @@ def main(args):
     os.mkdir('dist/')
 
     cmdstr = "python3 setup.py sdist bdist_wheel"
-    result = cmd(cmdstr)
+    cmd(cmdstr, check=True)
 
-    cmdstr = "twine upload dist/* -u {} -p {}".format(creds['pipy.org']['username'], creds['pipy.org']['password'])
-    result = cmd(cmdstr)
+    if args.create:
+        cmdstr = "twine upload dist/*"
+        cmd(cmdstr, check=True)
+        print('Log into https://pypi.org/, create a token for project, and add the credential files')
+    else:
+        cmdstr = "twine upload dist/* -u {} -p {}".format(creds['pipy.org']['username'], creds['pipy.org']['password'])
+        cmd(cmdstr, check=True)
 
-    loaded_version = False
-    while not loaded_version:
-        time.sleep(5)
-        cmdstr = "pip3 install --upgrade pymlutil"
-        result = cmd(cmdstr)
-        from pymlutil.version import __version__
-        if __version__==config['version']:
-            loaded_version = True
+        is_new_version_loaded = False
+        while not is_new_version_loaded:
+            time.sleep(5)
+            cmdstr = "pip3 install --upgrade pymlutil"
+            cmd(cmdstr, check=True)
+
+            cmdstr = 'python3 -c "import sys; from pymlutil.version import __version__; sys.exit(__version__)"'
+            _, loaded_version, _ = cmd(cmdstr)
+            loaded_str = loaded_version.decode("utf-8").replace("\n", "")
+            if loaded_str==version_str:
+                is_new_version_loaded = True
 
     dt = (datetime.now()-initial).total_seconds()
     print("Setup version {} complete {}s".format(config['version'], dt))
+    return result
 
 
 if __name__ == '__main__':
@@ -81,4 +129,5 @@ if __name__ == '__main__':
         debugpy.wait_for_client() # Pause the program until a remote debugger is attached
         print("Debugger attached")
 
-    main(args)
+    result = main(args)
+    sys.exit(result)

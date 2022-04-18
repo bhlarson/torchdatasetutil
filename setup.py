@@ -1,6 +1,9 @@
+import os, sys
 import shutil
 import yaml
 from setuptools import setup, find_packages
+from torchdatasetutil.version import config, VersionString
+
 
 def ReadDictYaml(filepath):
     yamldict = {}
@@ -13,11 +16,7 @@ def ReadDictYaml(filepath):
         print('Failed to load {} error {}'.format(filepath, ValueError))
     return yamldict
 
-buildconfig = 'config/build.yaml'
-config = ReadDictYaml(buildconfig)
-print(config)
-
-DESCRIPTION = 'Torch Dataset Utilities'
+version_str = VersionString(config)
 
 from pathlib import Path
 this_directory = Path(__file__).parent
@@ -26,16 +25,16 @@ long_description = (this_directory / "README.md").read_text()
 # Setting up
 setup(
     # the name must match the folder name 'pymlutil'
-    name="pymlutil", 
-    version=config['version'],
+    name="torchdatasetutil", 
+    version=version_str,
     author="Brad Larson",
     author_email="<bhlarson@gmail.com>",
-    description=DESCRIPTION,
+    description=config['description'],
     long_description=long_description,
     long_description_content_type='text/markdown',
     packages=find_packages(),
     install_requires=['pyyaml', 'prettytable', 'minio', 'numpy', 'opencv-python', 'torch', 'scikit-learn'], # add any additional packages that 
-    url = 'https://github.com/bhlarson/pymlutil',
+    url = 'https://github.com/bhlarson/torchdatasetutil',
     keywords=['python', 'Machine Learning', 'Utilities'],
     classifiers= [
         "Development Status :: 1 - Planning",
