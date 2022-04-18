@@ -24,8 +24,7 @@ long_description = (this_directory / "README.md").read_text()
 
 # Setting up
 setup(
-    # the name must match the folder name 'pymlutil'
-    name="torchdatasetutil", 
+    name="torchdatasetutil", # the library name must match the folder name"
     version=version_str,
     author="Brad Larson",
     author_email="<bhlarson@gmail.com>",

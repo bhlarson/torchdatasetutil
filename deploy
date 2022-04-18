@@ -59,7 +59,7 @@ def Archive(args, config):
         return result, config, version_str
     
     if args.message is None:
-        description = "pymlutil version {}".format(version_str)
+        description = "{} version {}".format(config['name'], version_str)
     else:
         description = args.description
     cmdstr = 'git tag -a {} -m "{}"'.format(version_str,description )
@@ -83,7 +83,7 @@ def main(args):
     if result:
         return result
 
-    print("Create pymlutil version: {}".format(version_str))
+    print("Create {} version: {}".format(config['name'],version_str))
 
     pwd = os.getcwd()
 
@@ -104,10 +104,10 @@ def main(args):
         is_new_version_loaded = False
         while not is_new_version_loaded:
             time.sleep(5)
-            cmdstr = "pip3 install --upgrade pymlutil"
+            cmdstr = "pip3 install --upgrade {}".format(config['name'])
             cmd(cmdstr, check=True)
 
-            cmdstr = 'python3 -c "import sys; from pymlutil.version import __version__; sys.exit(__version__)"'
+            cmdstr = 'python3 -c "import sys; from {}.version import __version__; sys.exit(__version__)"'.format(config['name'])
             _, loaded_version, _ = cmd(cmdstr)
             loaded_str = loaded_version.decode("utf-8").replace("\n", "")
             if loaded_str==version_str:
