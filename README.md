@@ -74,6 +74,8 @@ pip3 install --upgrade torchdatasetutil
 ```
 
 ## Load datasets
-
+```cmd
+py -m torchdatasetutil -d -getcoco
+```
 
 ###

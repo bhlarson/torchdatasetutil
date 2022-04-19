@@ -17,6 +17,7 @@ from pymlutil.imutil import ImUtil, ImTransform
 from .cocostore import *
 from .imstore import *
 from .getcoco import getcoco
+from .getsintel import getsintel
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Process arguments')
@@ -44,9 +45,16 @@ def parse_arguments():
     parser.add_argument('-cuda', type=bool, default=True)
 
     parser.add_argument('-getcoco', action='store_true',help='Get coco dataset') 
-    parser.add_argument('-cocodatasetname', type=str, default='./datasets_test/', help='Coco')
     parser.add_argument('-cocourl', type=json.loads, default=None, 
                         help='List of coco dataset URLs to load.  If none, coco 2017 datafiles are loaded from https://cocodataset.org/#download')
+
+    parser.add_argument('-cocodatasetname', type=str, default='coco', help='coco dataset name in objet storage')
+
+    parser.add_argument('-getsintel', action='store_true',help='Get sintel dataset')
+    parser.add_argument('-sintelurl', type=json.loads, default=None, 
+                        help='List of sintel dataset URLs to load.  If none, http://sintel.cs.washington.edu/MPI-Sintel-complete.zip is loaded')
+
+    parser.add_argument('-sinteldatasetname', type=str, default='sintel', help='Sintel dataset name in objet storage')
 
     args = parser.parse_args()
     return args
@@ -64,6 +72,9 @@ def main(args):
             getcoco(s3, s3def, cocourl=args.cocourl, dataset=args.cocodatasetname)
         else:
             getcoco(s3, s3def, dataset=args.cocodatasetname)
+
+    if args.getsintel:
+        getsintel(s3, s3def)
 
 
     imUtil = ImUtil(dataset_desc, class_dictionary)
