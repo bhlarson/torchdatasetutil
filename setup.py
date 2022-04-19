@@ -31,7 +31,7 @@ setup(
     description=config['description'],
     long_description=long_description,
     long_description_content_type='text/markdown',
-    packages=find_packages(),
+    packages=find_packages(exclude="tests"),
     install_requires=['pyyaml', 'prettytable', 'minio', 'numpy', 'opencv-python', 'torch', 'scikit-learn'], # add any additional packages that 
     url = 'https://github.com/bhlarson/torchdatasetutil',
     keywords=['python', 'Machine Learning', 'Utilities'],

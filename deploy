@@ -12,7 +12,6 @@ import time
 from datetime import datetime
 from zipfile import ZipFile
 
-from sympy import re
 from pymlutil.jsonutil import ReadDict, WriteDict
 from torchdatasetutil.version import VersionString
 
@@ -23,16 +22,17 @@ def parse_arguments():
     parser.add_argument('-debug_port', type=int, default=3300, help='Debug port')
     parser.add_argument('-debug_listen', type=str, default='0.0.0.0', help='Default, accept any client')
 
-    parser.add_argument('-credentails', type=str, default='creds.yaml', help='Credentials file.')
+    parser.add_argument('-credentails', type=str, default='creds.yaml', help='Credentials file')
+    parser.add_argument('-package', type=str, default='torchdatasetutil', help='Credentials key')
     parser.add_argument('-config', type=str, default='torchdatasetutil/build.yaml', help='Configuration file')
     parser.add_argument('-password', type=str, default=None, help='Output path')
     parser.add_argument('--message', '-m', type=str, default=None, help='Version get message')
-    parser.add_argument('--create', '-c', type=bool, default=False, help='Create library')
+    parser.add_argument('--test', '-t', action='store_true', help='Test deploy')
 
     args = parser.parse_args()
     return args
 
-def cmd(command, check=False):
+def cmd(command, check=True):
     print('$ '+command)
     initial = datetime.now()
     result = subprocess.run(command, shell=True, capture_output=True, check=check)
@@ -47,29 +47,31 @@ def Archive(args, config):
     WriteDict(config, args.config)
 
     cmdstr = 'git add {}'.format(args.config)
-    cmd(cmdstr, check=True)
+    cmd(cmdstr)
 
     cmdstr = 'git commit -m "Tag version {}"'.format(version_str)
-    cmd(cmdstr, check=True)
+    cmd(cmdstr)
 
     cmdstr = 'git diff-index --quiet HEAD --;'
-    result, stderr, stdout = cmd(cmdstr)
-    if result != 0:
+    result, stderr, stdout = cmd(cmdstr, check=False)
+    if result != 0 and not args.test:
         print ('Changes in working tree.  Please commit before creating a versioned repository.  Run "git status" for more information.')
         return result, config, version_str
+    else:
+        result=0
     
     if args.message is None:
         description = "{} version {}".format(config['name'], version_str)
     else:
         description = args.description
     cmdstr = 'git tag -a {} -m "{}"'.format(version_str,description )
-    cmd(cmdstr, check=True)
+    cmd(cmdstr)
 
     cmdstr = 'git push origin {}'.format(version_str)
-    cmd(cmdstr, check=True)
+    cmd(cmdstr)
 
     cmdstr = 'git push'
-    cmd(cmdstr, check=True)
+    cmd(cmdstr)
     
     return result, config, version_str
 
@@ -78,6 +80,9 @@ def main(args):
 
     creds = ReadDict(args.credentails)
     config = ReadDict(args.config)
+
+    cmdstr = "python3 -m unittest discover"
+    cmd(cmdstr)
 
     result, config, version_str = Archive(args, config)
     if result:
@@ -91,27 +96,23 @@ def main(args):
     os.mkdir('dist/')
 
     cmdstr = "python3 setup.py sdist bdist_wheel"
-    cmd(cmdstr, check=True)
+    cmd(cmdstr)
 
-    if args.create:
-        cmdstr = "twine upload dist/*"
-        cmd(cmdstr, check=True)
-        print('Log into https://pypi.org/, create a token for project, and add the credential files')
-    else:
-        cmdstr = "twine upload dist/* -u {} -p {}".format(creds['pipy.org']['username'], creds['pipy.org']['password'])
-        cmd(cmdstr, check=True)
+    pipy_creds = next(filter(lambda d: d.get('package') == args.package, creds['pipy']), None)
+    cmdstr = "twine upload dist/* -u {} -p {}".format(pipy_creds['username'], pipy_creds['password'])
+    cmd(cmdstr)
 
-        is_new_version_loaded = False
-        while not is_new_version_loaded:
-            time.sleep(5)
-            cmdstr = "pip3 install --upgrade {}".format(config['name'])
-            cmd(cmdstr, check=True)
+    is_new_version_loaded = False
+    while not is_new_version_loaded:
+        time.sleep(5)
+        cmdstr = "pip3 install --upgrade {}".format(config['name'])
+        cmd(cmdstr)
 
-            cmdstr = 'python3 -c "import sys; from {}.version import __version__; sys.exit(__version__)"'.format(config['name'])
-            _, loaded_version, _ = cmd(cmdstr)
-            loaded_str = loaded_version.decode("utf-8").replace("\n", "")
-            if loaded_str==version_str:
-                is_new_version_loaded = True
+        cmdstr = 'python3 -c "import sys; from {}.version import __version__; sys.exit(__version__)"'.format(config['name'])
+        _, loaded_version, _ = cmd(cmdstr, check=False)
+        loaded_str = loaded_version.decode("utf-8").replace("\n", "")
+        if loaded_str==version_str:
+            is_new_version_loaded = True
 
     dt = (datetime.now()-initial).total_seconds()
     print("Setup version {} complete {}s".format(config['version'], dt))

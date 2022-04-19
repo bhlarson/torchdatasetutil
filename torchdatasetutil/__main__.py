@@ -13,15 +13,59 @@ from torch.utils.data import DataLoader
 from pymlutil.s3 import s3store, Connect
 from pymlutil.jsonutil import ReadDictJson
 from pymlutil.imutil import ImUtil, ImTransform
-from .cocostore import *
-from .imstore import *
 
-def Test(args):
+from torchdatasetutil.cocostore import *
+from torchdatasetutil.imstore import *
+from torchdatasetutil.getcoco import getcoco
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Process arguments')
+
+    parser.add_argument('-d', '--debug', action='store_true',help='Wait for debuggee attach')   
+    parser.add_argument('-debug_port', type=int, default=3000, help='Debug port')
+    parser.add_argument('-debug_address', type=str, default='0.0.0.0', help='Debug port')
+    parser.add_argument('-dataset_path', type=str, default='./dataset', help='Local dataset path')
+    parser.add_argument('-credentails', type=str, default='creds.json', help='Credentials file.')
+    parser.add_argument('-dataset_train', type=str, default='data/coco/annotations/instances_train2017.json', help='Coco dataset train instance json file.')
+    parser.add_argument('-dataset_val', type=str, default='data/coco/annotations/instances_val2017.json', help='Coco dataset validation instance json file.')
+    parser.add_argument('-train_image_path', type=str, default='data/coco/train2017', help='Coco image path for dataset.')
+    parser.add_argument('-val_image_path', type=str, default='data/coco/val2017', help='Coco image path for dataset.')
+    parser.add_argument('-class_dict', type=str, default='model/segmin/coco.json', help='Model class definition file.')
+    parser.add_argument('-num_images', type=int, default=10, help='Number of images to display')
+    parser.add_argument('-num_workers', type=int, default=1, help='Data loader workers')
+    parser.add_argument('-batch_size', type=int, default=4, help='Dataset batch size')
+    parser.add_argument('-test_iterator', type=bool, default=True, help='True to test iterator')
+    parser.add_argument('-test_dataset', type=bool, default=True, help='True to test dataset')
+    parser.add_argument('-test_path', type=str, default='./datasets_test/', help='Test path ending in a forward slash')
+
+    parser.add_argument('-height', type=int, default=640, help='Batch image height')
+    parser.add_argument('-width', type=int, default=640, help='Batch image width')
+    parser.add_argument('-imflags', type=int, default=cv2.IMREAD_COLOR, help='cv2.imdecode flags')
+    parser.add_argument('-cuda', type=bool, default=True)
+
+    parser.add_argument('-getcoco', action='store_true',help='Get coco dataset') 
+    parser.add_argument('-cocodatasetname', type=str, default='./datasets_test/', help='Coco')
+    parser.add_argument('-cocourl', type=json.loads, default=None, 
+                        help='List of coco dataset URLs to load.  If none, coco 2017 datafiles are loaded from https://cocodataset.org/#download')
+
+    args = parser.parse_args()
+    return args
+
+
+def main(args):
 
     s3, creds, s3def = Connect(args.credentails)
 
     dataset_desc = s3.GetDict(s3def['sets']['dataset']['bucket'],args.dataset_train)
     class_dictionary = s3.GetDict(s3def['sets']['dataset']['bucket'],args.class_dict) 
+
+    if args.getcoco:
+        if args.cocourl is not None:
+            getcoco(s3, s3def, cocourl=args.cocourl, dataset=args.cocodatasetname)
+        else:
+            getcoco(s3, s3def, dataset=args.cocodatasetname)
+
+
     imUtil = ImUtil(dataset_desc, class_dictionary)
     
     if args.test_iterator:
@@ -77,33 +121,7 @@ def Test(args):
 #objdict = json.load(open('/data/git/mllib/datasets/coco.json'))
 #Test(objdict, '/store/Datasets/coco/instances_val2017.json', '/store/Datasets/coco/val2014', 'COCO_val2014_')
 
-def parse_arguments():
-    parser = argparse.ArgumentParser(description='Process arguments')
 
-    parser.add_argument('-d', '--debug', action='store_true',help='Wait for debuggee attach')   
-    parser.add_argument('-debug_port', type=int, default=3000, help='Debug port')
-    parser.add_argument('-debug_address', type=str, default='0.0.0.0', help='Debug port')
-    parser.add_argument('-dataset_path', type=str, default='./dataset', help='Local dataset path')
-    parser.add_argument('-credentails', type=str, default='creds.json', help='Credentials file.')
-    parser.add_argument('-dataset_train', type=str, default='data/coco/annotations/instances_train2017.json', help='Coco dataset train instance json file.')
-    parser.add_argument('-dataset_val', type=str, default='data/coco/annotations/instances_val2017.json', help='Coco dataset validation instance json file.')
-    parser.add_argument('-train_image_path', type=str, default='data/coco/train2017', help='Coco image path for dataset.')
-    parser.add_argument('-val_image_path', type=str, default='data/coco/val2017', help='Coco image path for dataset.')
-    parser.add_argument('-class_dict', type=str, default='model/segmin/coco.json', help='Model class definition file.')
-    parser.add_argument('-num_images', type=int, default=10, help='Number of images to display')
-    parser.add_argument('-num_workers', type=int, default=1, help='Data loader workers')
-    parser.add_argument('-batch_size', type=int, default=4, help='Dataset batch size')
-    parser.add_argument('-test_iterator', type=bool, default=True, help='True to test iterator')
-    parser.add_argument('-test_dataset', type=bool, default=True, help='True to test dataset')
-    parser.add_argument('-test_path', type=str, default='./datasets_test/', help='Test path ending in a forward slash')
-
-    parser.add_argument('-height', type=int, default=640, help='Batch image height')
-    parser.add_argument('-width', type=int, default=640, help='Batch image width')
-    parser.add_argument('-imflags', type=int, default=cv2.IMREAD_COLOR, help='cv2.imdecode flags')
-    parser.add_argument('-cuda', type=bool, default=True)
-
-    args = parser.parse_args()
-    return args
     
 if __name__ == '__main__':
     import argparse
@@ -117,5 +135,6 @@ if __name__ == '__main__':
         debugpy.wait_for_client()  # Pause the program until a remote debugger is attached
         print("Debugger attached")
 
-    Test(args)
+    main(args)
+
 
