@@ -14,9 +14,9 @@ from pymlutil.s3 import s3store, Connect
 from pymlutil.jsonutil import ReadDictJson
 from pymlutil.imutil import ImUtil, ImTransform
 
-from torchdatasetutil.cocostore import *
-from torchdatasetutil.imstore import *
-from torchdatasetutil.getcoco import getcoco
+from .cocostore import *
+from .imstore import *
+from .getcoco import getcoco
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Process arguments')
