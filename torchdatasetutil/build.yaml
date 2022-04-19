@@ -1,6 +1,7 @@
-description: Torch Dataset Utilities
+name: torchdatasetutil
+description: Utilities to load and use pytorch datasets stored in Minio S3
 version:
   major: 0
   minor: 0
-  patch: 5
+  patch: 6
   label: ''
