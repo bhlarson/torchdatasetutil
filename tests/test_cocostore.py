@@ -37,8 +37,7 @@ class Test(unittest.TestCase):
         store = CocoStore(s3, bucket=s3def['sets']['dataset']['bucket'], 
                         dataset_desc=parameters['coco']['dataset_train'], 
                         image_paths=parameters['coco']['train_image_path'], 
-                        class_dictionary=parameters['coco']['class_dict'], 
-                        imflags=parameters['coco']['imflags'])
+                        class_dictionary=parameters['coco']['class_dict'])
 
         for i, iman in enumerate(store):
             img = store.MergeIman(iman['img'], iman['ann'])
