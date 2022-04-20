@@ -45,7 +45,7 @@ def parse_arguments():
     parser.add_argument('-imflags', type=int, default=cv2.IMREAD_COLOR, help='cv2.imdecode flags')
     parser.add_argument('-cuda', type=bool, default=True)
 
-    parser.add_argument('--test', '-t', action='store_true',help='Run unit tests') 
+    parser.add_argument('--test', '-t', type=str, default=None,help='Run unit tests') 
 
     parser.add_argument('-getcoco', action='store_true',help='Get coco dataset') 
     parser.add_argument('-cocourl', type=json.loads, default=None, 
@@ -63,8 +63,8 @@ def parse_arguments():
 
 def main(args):
 
-    if args.test:
-        unittest.main()
+    if args.test  is not None:
+        unittest.main(args=args.test)
 
     s3, creds, s3def = Connect(args.credentials)
 
