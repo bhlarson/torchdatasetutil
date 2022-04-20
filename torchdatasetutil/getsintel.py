@@ -11,7 +11,7 @@ from zipfile import ZipFile
 from tqdm import tqdm
 
 
-urls=["http://sintel.cs.washington.edu/MPI-Sintel-complete.zip",
+urls=["http://files.is.tue.mpg.de/sintel/MPI-Sintel-complete.zip",
         ]
 
 def getsintel(s3, s3def, urls=urls, dataset='sintel'):

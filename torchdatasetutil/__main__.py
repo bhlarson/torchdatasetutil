@@ -47,13 +47,11 @@ def parse_arguments():
     parser.add_argument('-getcoco', action='store_true',help='Get coco dataset') 
     parser.add_argument('-cocourl', type=json.loads, default=None, 
                         help='List of coco dataset URLs to load.  If none, coco 2017 datafiles are loaded from https://cocodataset.org/#download')
-
     parser.add_argument('-cocodatasetname', type=str, default='coco', help='coco dataset name in objet storage')
 
     parser.add_argument('-getsintel', action='store_true',help='Get sintel dataset')
     parser.add_argument('-sintelurl', type=json.loads, default=None, 
-                        help='List of sintel dataset URLs to load.  If none, http://sintel.cs.washington.edu/MPI-Sintel-complete.zip is loaded')
-
+                        help='List of sintel dataset URLs to load.  If none, http://files.is.tue.mpg.de/sintel/MPI-Sintel-complete.zip is loaded')
     parser.add_argument('-sinteldatasetname', type=str, default='sintel', help='Sintel dataset name in objet storage')
 
     args = parser.parse_args()
@@ -64,9 +62,6 @@ def main(args):
 
     s3, creds, s3def = Connect(args.credentials)
 
-    dataset_desc = s3.GetDict(s3def['sets']['dataset']['bucket'],args.dataset_train)
-    class_dictionary = s3.GetDict(s3def['sets']['dataset']['bucket'],args.class_dict) 
-
     if args.getcoco:
         if args.cocourl is not None:
             getcoco(s3, s3def, cocourl=args.cocourl, dataset=args.cocodatasetname)
@@ -74,12 +69,14 @@ def main(args):
             getcoco(s3, s3def, dataset=args.cocodatasetname)
 
     if args.getsintel:
-        getsintel(s3, s3def)
-
-
-    imUtil = ImUtil(dataset_desc, class_dictionary)
-    
+        if args.sintelurl is not None:
+            getsintel(s3, s3def, cocourl=args.sintelurl, dataset=args.sinteldatasetname)
+        else:
+            getsintel(s3, s3def, dataset=args.sinteldatasetname)
+   
     if args.test_iterator:
+        dataset_desc = s3.GetDict(s3def['sets']['dataset']['bucket'],args.dataset_train)
+        class_dictionary = s3.GetDict(s3def['sets']['dataset']['bucket'],args.class_dict) 
         os.makedirs(args.test_path, exist_ok=True)
         
         store = CocoStore(s3, bucket=s3def['sets']['dataset']['bucket'], 
@@ -97,6 +94,10 @@ def main(args):
                 break
 
     if args.test_dataset:
+
+        dataset_desc = s3.GetDict(s3def['sets']['dataset']['bucket'],args.dataset_train)
+        class_dictionary = s3.GetDict(s3def['sets']['dataset']['bucket'],args.class_dict) 
+        imUtil = ImUtil(dataset_desc, class_dictionary)
 
         loaders_dfn = [{'set':'train', 'dataset': args.dataset_train, 'image_path': args.train_image_path, 'enable_transform':True},
                        {'set':'test', 'dataset':  args.dataset_val, 'image_path': args.val_image_path, 'enable_transform':False}]
