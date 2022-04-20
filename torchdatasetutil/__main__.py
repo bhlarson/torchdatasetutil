@@ -26,7 +26,7 @@ def parse_arguments():
     parser.add_argument('-debug_port', type=int, default=3000, help='Debug port')
     parser.add_argument('-debug_address', type=str, default='0.0.0.0', help='Debug port')
     parser.add_argument('-dataset_path', type=str, default='./dataset', help='Local dataset path')
-    parser.add_argument('-credentails', type=str, default='creds.json', help='Credentials file.')
+    parser.add_argument('-credentails', type=str, default='creds.yaml', help='Credentials file.')
     parser.add_argument('-dataset_train', type=str, default='data/coco/annotations/instances_train2017.json', help='Coco dataset train instance json file.')
     parser.add_argument('-dataset_val', type=str, default='data/coco/annotations/instances_val2017.json', help='Coco dataset validation instance json file.')
     parser.add_argument('-train_image_path', type=str, default='data/coco/train2017', help='Coco image path for dataset.')
