@@ -45,8 +45,6 @@ def parse_arguments():
     parser.add_argument('-imflags', type=int, default=cv2.IMREAD_COLOR, help='cv2.imdecode flags')
     parser.add_argument('-cuda', type=bool, default=True)
 
-    parser.add_argument('--test', '-t', action='store_true', help='Run unit tests') 
-
     parser.add_argument('-getcoco', action='store_true',help='Get coco dataset') 
     parser.add_argument('-cocourl', type=json.loads, default=None, 
                         help='List of coco dataset URLs to load.  If none, coco 2017 datafiles are loaded from https://cocodataset.org/#download')
@@ -62,10 +60,6 @@ def parse_arguments():
 
 
 def main(args):
-
-    if args.test  is not None:
-        from tests.test_cocostore import Test
-        unittest.main()
 
     s3, creds, s3def = Connect(args.credentials)
 
