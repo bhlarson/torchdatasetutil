@@ -12,7 +12,10 @@ from tqdm import tqdm
 
 
 urls=["http://files.is.tue.mpg.de/sintel/MPI-Sintel-complete.zip",
-        ]
+      "https://lmb.informatik.uni-freiburg.de/data/FlyingChairs/FlyingChairs.zip",
+      "https://lmb.informatik.uni-freiburg.de/data/FlyingChairs2.zip",
+      "https://s3.eu-central-1.amazonaws.com/avg-kitti/data_scene_flow.zip",
+      "https://s3.eu-central-1.amazonaws.com/avg-kitti/data_stereo_flow.zip"  ]
 
 def getsintel(s3, s3def, urls=urls, dataset='sintel'):
 
