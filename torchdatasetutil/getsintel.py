@@ -14,7 +14,7 @@ from tqdm import tqdm
 urls=["http://sintel.cs.washington.edu/MPI-Sintel-complete.zip",
         ]
 
-def getcoco(s3, s3def, urls=urls, dataset='sintel'):
+def getsintel(s3, s3def, urls=urls, dataset='sintel'):
 
     with tempfile.TemporaryDirectory() as tmpdir:
 
