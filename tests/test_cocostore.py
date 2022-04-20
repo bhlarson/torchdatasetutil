@@ -7,6 +7,7 @@ import json
 from collections import defaultdict
 import unittest
 import torch
+import tqdm
 from torch.utils.data import Dataset
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
@@ -16,18 +17,15 @@ from pymlutil.jsonutil import ReadDict
 from pymlutil.imutil import ImUtil, ImTransform
 from torchdatasetutil.cocostore import CocoStore
 
+test_config = 'test.yaml'
 class Test(unittest.TestCase):      
 
     def test_iterator(self):
-        parameters = ReadDict('test.yaml')
+        parameters = ReadDict(test_config)
 
-        self.credentails = 'creds.yaml'
-        self.dataset_train = 'data/coco/annotations/instances_train2017.json'
-        self.dataset_val = 'data/coco/annotations/instances_val2017.json'
-        self.train_image_path = 'data/coco/train2017'
-        self.val_image_path = 'data/coco/val2017'
-        self.class_dict = 'model/segmin/coco.json'
-        self.imflags = cv2.IMREAD_COLOR
+        if 'coco' not in parameters:
+            raise ValueError('coco not in {}'.format(test_config))
+
         s3, creds, s3def = Connect(parameters['coco']['credentials'])
 
         dataset_desc = s3.GetDict(s3def['sets']['dataset']['bucket'],parameters['coco']['dataset_train'])
@@ -39,10 +37,14 @@ class Test(unittest.TestCase):
                         image_paths=parameters['coco']['train_image_path'], 
                         class_dictionary=parameters['coco']['class_dict'])
 
-        for i, iman in enumerate(store):
+        for i, iman in enumerate(tqdm(store)):
             img = store.MergeIman(iman['img'], iman['ann'])
             if img is None:
                 raise ValueError('img is None')
+            if 'test_images' in parameters['coco'] and i >= parameters['coco']['test_images']:
+                break
+
+
 
     def test_dataset(self):
         print('test_dataset: create me!')

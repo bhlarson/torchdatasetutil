@@ -124,11 +124,11 @@ class CocoStore(ImUtil):
                 print('trainId {} >= classes {}'.format(obj['trainId'], self.class_dictionary ["classes"]))    
         return annimg
 
-    def len(self):
+    def __len__(self):
         return len(self.dataset_desc['images'])
 
     def __next__(self):
-        if self.i < self.len():
+        if self.i < self.__len__():
             result = self.__getitem__(self.i)
             self.i += 1
             return result
@@ -136,7 +136,7 @@ class CocoStore(ImUtil):
             raise StopIteration
 
     def __getitem__(self, idx):
-        if idx >= 0 and idx < self.len():
+        if idx >= 0 and idx < self.__len__():
             img_entry = self.dataset_desc['images'][idx]
             imgFile = '{}/{}{}'.format(self.image_paths,self.name_decoration,img_entry['file_name'])
             img = self.DecodeImage(self.bucket, imgFile)
