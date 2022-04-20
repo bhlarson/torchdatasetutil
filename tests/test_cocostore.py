@@ -37,7 +37,7 @@ class Test(unittest.TestCase):
                         image_paths=parameters['coco']['train_image_path'], 
                         class_dictionary=parameters['coco']['class_dict'])
 
-        for i, iman in enumerate(tqdm(store)):
+        for i, iman in enumerate(store):
             img = store.MergeIman(iman['img'], iman['ann'])
             if img is None:
                 raise ValueError('img is None')
