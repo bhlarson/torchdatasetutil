@@ -1,6 +1,6 @@
 # Torch Dataset Utilities
 
-"torchdatasetutils" produces torch [DataLoader](https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader) classes and utility functions for several imaging datasets.  This currently includes sets of images and annotations from [CVAT](https://github.com/openvinotoolkit/cvat), [COCO dataset](https://cocodataset.org/).  "torchdatasetutil" uses an s3 object storage to hold dataset data.  This enables training and test to be performed on nodes different from where the dataset is stored with application defined credentials.  It uses torch PyTorch worker threads to prefetch data for efficient GPU or CPU training and inference.
+The python library [torchdatasetutils](https://pypi.org/project/torchdatasetutil/) produces torch [DataLoader](https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader) classes and utility functions for several imaging datasets.  This currently includes sets of images and annotations from [CVAT](https://github.com/openvinotoolkit/cvat), [COCO dataset](https://cocodataset.org/).  "torchdatasetutil" uses an s3 object storage to hold dataset data.  This enables training and test to be performed on nodes different from where the dataset is stored with application defined credentials.  It uses torch PyTorch worker threads to prefetch data for efficient GPU or CPU training and inference.
 
 "torchdatasetutils" takes as an input the [pymlutil](https://pypi.org/project/pymlutil/).s3 object to access the object storage.
 
