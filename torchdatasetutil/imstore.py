@@ -13,7 +13,7 @@ from pathlib import Path, PurePath
 from torch.utils.data.sampler import SubsetRandomSampler
 
 from pymlutil.s3 import s3store, Connect
-from pymlutil.jsonutil import ReadDictJson
+from pymlutil.jsonutil import ReadDict
 from pymlutil.imutil import ImUtil, ImTransform
 
 class ImagesStore(ImUtil):

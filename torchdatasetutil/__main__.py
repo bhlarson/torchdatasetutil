@@ -12,7 +12,7 @@ from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 
 from pymlutil.s3 import s3store, Connect
-from pymlutil.jsonutil import ReadDictJson
+from pymlutil.jsonutil import ReadDict
 from pymlutil.imutil import ImUtil, ImTransform
 
 from .cocostore import *
@@ -129,7 +129,7 @@ def main(args):
                     break
         print ('test_dataset complete')
 
-    print('Test complete')
+    print('torchdatasetutil complete')
 
 #objdict = json.load(open('/data/git/mllib/datasets/coco.json'))
 #Test(objdict, '/store/Datasets/coco/instances_val2017.json', '/store/Datasets/coco/val2014', 'COCO_val2014_')

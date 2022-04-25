@@ -11,7 +11,7 @@ from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 
 from pymlutil.s3 import s3store, Connect
-from pymlutil.jsonutil import ReadDictJson
+from pymlutil.jsonutil import ReadDict
 from pymlutil.imutil import ImUtil, ImTransform
 
 class CocoStore(ImUtil):
