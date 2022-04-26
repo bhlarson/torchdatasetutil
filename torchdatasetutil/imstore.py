@@ -24,6 +24,8 @@ class ImagesStore(ImUtil):
         self.dataset_desc = s3.GetDict(bucket,dataset_desc)
         self.class_dictionary = s3.GetDict(bucket,class_dictionary) 
 
+        super(ImagesStore, self).__init__(dataset_desc=self.dataset_desc, class_dictionary=self.class_dictionary)
+
         self.imflags = cv2.IMREAD_COLOR 
         if self.dataset_desc is not None and 'image_colorspace' in self.dataset_desc:
             if self.isGrayscale():
@@ -37,7 +39,6 @@ class ImagesStore(ImUtil):
         self.labels = []
 
         self.CreateIndex()
-        super(ImagesStore, self).__init__(dataset_desc=self.dataset_desc, class_dictionary=self.class_dictionary)
         self.i = 0
 
     def ImagenameFromLabelname(self, lbl_filename):
