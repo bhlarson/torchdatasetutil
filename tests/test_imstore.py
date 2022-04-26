@@ -27,10 +27,6 @@ class Test(unittest.TestCase):
             raise ValueError('images not in {}'.format(test_config))
 
         s3, creds, s3def = Connect(parameters['images']['credentials'])
-
-        #dataset_desc = s3.GetDict(s3def['sets']['dataset']['bucket'],parameters['images']['dataset'])
-        #class_dictionary = s3.GetDict(s3def['sets']['dataset']['bucket'],parameters['images']['class_dict']) 
-        #imUtil = ImUtil(dataset_desc, class_dictionary)
                 
         store = ImagesStore(s3, bucket=s3def['sets']['dataset']['bucket'], 
                         dataset_desc=parameters['images']['dataset'], 
