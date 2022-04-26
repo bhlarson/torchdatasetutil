@@ -26,7 +26,7 @@ class ImagesStore(ImUtil):
 
         self.imflags = cv2.IMREAD_COLOR 
         if self.dataset_desc is not None and 'image_colorspace' in self.dataset_desc:
-            if self.isGrayscale(self.dataset_desc['image_colorspace']):
+            if self.isGrayscale():
                 self.imflags = cv2.IMREAD_GRAYSCALE
         self.anflags = cv2.IMREAD_GRAYSCALE 
 
@@ -39,11 +39,6 @@ class ImagesStore(ImUtil):
         self.CreateIndex()
         super(ImagesStore, self).__init__(dataset_desc=self.dataset_desc, class_dictionary=self.class_dictionary)
         self.i = 0
-
-    def isGrayscale(self, color_str):
-        if color_str.lower() == 'grayscale':
-            return True
-        return False
 
     def ImagenameFromLabelname(self, lbl_filename):
         return lbl_filename.replace(self.bare_label, self.bare_image)

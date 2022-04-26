@@ -41,8 +41,8 @@ class Test(unittest.TestCase):
             if img is None:
                 raise ValueError('img is None')
             if 'test_images' in parameters['coco'] and i >= parameters['coco']['test_images']:
-                break
-    '''
+                break'''
+    
 
 
 
