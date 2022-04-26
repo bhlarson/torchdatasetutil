@@ -20,7 +20,7 @@ from torchdatasetutil.imstore import ImagesStore
 test_config = 'test.yaml'
 class Test(unittest.TestCase):      
 
-    def test_iterator(self):
+    '''def test_iterator(self):
         parameters = ReadDict(test_config)
 
         if 'images' not in parameters:
@@ -42,6 +42,7 @@ class Test(unittest.TestCase):
                 raise ValueError('img is None')
             if 'test_images' in parameters['coco'] and i >= parameters['coco']['test_images']:
                 break
+    '''
 
 
 
