@@ -16,11 +16,17 @@ from pymlutil.imutil import ImUtil, ImTransform
 
 class CocoStore(ImUtil):
 
-    def __init__(self, s3, bucket, dataset_desc, image_paths, class_dictionary, imflags=cv2.IMREAD_COLOR, name_decoration='' ):
+    def __init__(self, s3, # pymlutil.s3 s3 class object
+                 bucket, # bucket name string
+                 dataset_desc, # object in bucket containing coco format dataset definition 
+                 image_paths, # path in bucket to dataset images
+                 class_dictionary, # json or yaml class dictionary object described in  https://github.com/bhlarson/torchdatasetutil/blob/main/torchdatasetutil.ipynb#ClassDictionary
+                 imflags=cv2.IMREAD_COLOR, # image colorspace to load in cv2 formayt
+                 name_decoration='' ): # Additional test to append to the filename to load
 
-        self.s3 = s3
-        self.bucket = bucket
-        self.dataset_desc = s3.GetDict(bucket,dataset_desc)
+        self.s3 = s3 
+        self.bucket = bucket 
+        self.dataset_desc = s3.GetDict(bucket,dataset_desc) 
         self.class_dictionary = s3.GetDict(bucket,class_dictionary)
         self.image_paths = image_paths
         self.name_decoration = name_decoration

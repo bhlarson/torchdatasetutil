@@ -50,22 +50,6 @@ class Test(unittest.TestCase):
             if 'test_images' in parameters['coco'] and i >= parameters['coco']['test_images']:
                 break
 
-    '''
-    default_loaders = [{'set':'train', 'dataset': 'data/coco/annotations/instances_train2017.json', 'image_path':'data/coco/train2017' , 'enable_transform':True},
-                    {'set':'test', 'dataset': 'data/coco/annotations/instances_val2017.json', 'image_path':'data/coco/val2017', 'enable_transform':False}]
-
-    def CreateCocoLoaders(s3, bucket, class_dict, 
-                        batch_size = 2, shuffle=True, 
-                        num_workers=0, cuda = True, timeout=0, loaders = default_loaders, 
-                        height=640, width=640, 
-                        image_transform=None, label_transform=None, 
-                        normalize=True, flipX=True, flipY=False, 
-                        rotate=3, scale_min=0.75, scale_max=1.25, offset=0.1, astype='float32',
-                        random_seed = None):
-    '''
-
-
-
     def test_CreateCocoLoaders(self):
         parameters = ReadDict(test_config)
 
