@@ -15,6 +15,8 @@ from torch.utils.data import DataLoader
 from pymlutil.s3 import s3store, Connect
 from pymlutil.jsonutil import ReadDict
 from pymlutil.imutil import ImUtil, ImTransform
+
+sys.path.insert(0, os.path.abspath('')) # Test files from current path rather than installed module
 from torchdatasetutil.imstore import ImagesStore, CreateImageLoaders
 
 test_config = 'test.yaml'

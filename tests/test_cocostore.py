@@ -1,3 +1,6 @@
+from pathlib import Path
+print('Running' if __name__ == '__main__' else 'Importing', Path(__file__).resolve())
+
 import sys
 import os
 from pycocotools import mask
@@ -15,6 +18,9 @@ from torch.utils.data import DataLoader
 from pymlutil.s3 import s3store, Connect
 from pymlutil.jsonutil import ReadDict
 from pymlutil.imutil import ImUtil, ImTransform
+
+# Force import from local files
+sys.path.insert(0, os.path.abspath('')) # Test files from current path rather than installed module
 from torchdatasetutil.cocostore import CocoStore, CreateCocoLoaders
 
 test_config = 'test.yaml'

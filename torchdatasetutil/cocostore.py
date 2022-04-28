@@ -1,3 +1,6 @@
+from pathlib import Path
+print('Running' if __name__ == '__main__' else 'Importing', Path(__file__).resolve())
+
 import sys
 import os
 from pycocotools import mask
@@ -195,7 +198,7 @@ class CocoDataset(Dataset):
                                      scale_min=scale_min, scale_max=scale_max, offset=offset, astype=astype)
 
     def __len__(self):
-        return self.store.len()
+        return self.store.__len__()
 
     def __getitem__(self, idx):
         result = self.store.__getitem__(idx)
