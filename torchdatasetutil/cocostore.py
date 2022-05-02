@@ -21,7 +21,7 @@ class CocoStore(ImUtil):
                  dataset_desc, # object in bucket containing coco format dataset definition 
                  image_paths, # path in bucket to dataset images
                  class_dictionary, # json or yaml class dictionary object described in  https://github.com/bhlarson/torchdatasetutil/blob/main/torchdatasetutil.ipynb#ClassDictionary
-                 imflags=cv2.IMREAD_COLOR, # image colorspace to load in cv2 formayt
+                 imflags=cv2.IMREAD_COLOR, # image colorspace to load in cv2 format
                  name_decoration='' ): # Additional test to append to the filename to load
 
         self.s3 = s3 
@@ -172,7 +172,6 @@ class CocoDataset(Dataset):
         scale_min=0.75, 
         scale_max=1.25, 
         offset=0.1,
-        astype='float32'
     ):
         self.image_transform = image_transform
         self.label_transform = label_transform
@@ -188,7 +187,6 @@ class CocoDataset(Dataset):
         self.scale_min = scale_min
         self.scale_max = scale_max
         self.offset = offset
-        self.astype = astype
 
         self.store = CocoStore(s3, bucket, dataset_desc, image_paths, class_dictionary, imflags=self.imflags, name_decoration=name_decoration)
 
@@ -198,7 +196,7 @@ class CocoDataset(Dataset):
                                      enable_transform=enable_transform, 
                                      flipX=flipX, flipY=flipY, 
                                      rotate=rotate, 
-                                     scale_min=scale_min, scale_max=scale_max, offset=offset, astype=astype)
+                                     scale_min=scale_min, scale_max=scale_max, offset=offset, astype=self.store.class_dictionary['input_type'])
 
     def __len__(self):
         return self.store.__len__()
@@ -245,7 +243,7 @@ def CreateCocoLoaders(s3, bucket, class_dict,
                       height=640, width=640, 
                       image_transform=None, label_transform=None, 
                       normalize=True, flipX=True, flipY=False, 
-                      rotate=3, scale_min=0.75, scale_max=1.25, offset=0.1, astype='float32',
+                      rotate=3, scale_min=0.75, scale_max=1.25, offset=0.1,
                       random_seed = None):
 
     pin_memory = False
@@ -264,7 +262,7 @@ def CreateCocoLoaders(s3, bucket, class_dict,
                     image_transform=image_transform, label_transform=label_transform, 
                     normalize=normalize,  enable_transform=loader['enable_transform'], 
                     flipX=flipX, flipY=flipY, 
-                    rotate=rotate, scale_min=scale_min, scale_max=scale_max, offset=offset, astype=astype)
+                    rotate=rotate, scale_min=scale_min, scale_max=scale_max, offset=offset)
 
         # Creating PT data samplers and loaders:
         loader['batches'] =int(dataset.__len__()/batch_size)
@@ -281,7 +279,7 @@ def CreateCocoLoaders(s3, bucket, class_dict,
 
     return loaders
 
-def Test(args):
+def main(args):
 
     s3, creds, s3def = Connect(args.credentails)
 
@@ -382,5 +380,5 @@ if __name__ == '__main__':
         debugpy.wait_for_client()  # Pause the program until a remote debugger is attached
         print("Debugger attached")
 
-    Test(args)
+    main(args)
 

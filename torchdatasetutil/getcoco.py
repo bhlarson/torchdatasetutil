@@ -24,7 +24,7 @@ cocourl=["http://images.cocodataset.org/zips/train2017.zip",
 
 def getcoco(s3, s3def, cocourl=cocourl, dataset='coco'):
     saved_name = '{}/{}'.format(s3def['sets']['dataset']['prefix'] , dataset)
-    for url in tqdm(cocourl):
+    for url in tqdm(cocourl, bar_format='{desc:<8.5}{percentage:3.0f}%|{bar:50}{r_bar}'):
         with tempfile.TemporaryDirectory() as tmpdir:
             outpath = '{}/{}'.format(tmpdir,os.path.basename(url))
             if os.path.isfile(outpath):
@@ -36,7 +36,9 @@ def getcoco(s3, s3def, cocourl=cocourl, dataset='coco'):
 
             dest = '{}/{}'.format(tmpdir,dataset)
             with ZipFile(outpath,"r") as zip_ref:
-                for file in tqdm(iterable=zip_ref.namelist(), total=len(zip_ref.namelist())):
+                for file in tqdm(iterable=zip_ref.namelist(), 
+                    bar_format='{desc:<8.5}{percentage:3.0f}%|{bar:50}{r_bar}', 
+                    total=len(zip_ref.namelist())):
                     zip_ref.extract(member=file, path=fspath(dest))
 
             os.remove(outpath) # Remove zip

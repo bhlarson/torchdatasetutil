@@ -139,7 +139,6 @@ class ImagesDataset(Dataset):
         scale_min=0.75, 
         scale_max=1.25, 
         offset=0.1,
-        astype='float32'
     ):
         self.image_transform = image_transform
         self.label_transform = label_transform
@@ -154,7 +153,6 @@ class ImagesDataset(Dataset):
         self.scale_min = scale_min
         self.scale_max = scale_max
         self.offset = offset
-        self.astype = astype
 
         self.store = ImagesStore(s3, bucket, dataset_desc, class_dictionary)
 
@@ -163,7 +161,7 @@ class ImagesDataset(Dataset):
                                      enable_transform=enable_transform, 
                                      flipX=flipX, flipY=flipY, 
                                      rotate=rotate, 
-                                     scale_min=scale_min, scale_max=scale_max, offset=offset, astype=astype)
+                                     scale_min=scale_min, scale_max=scale_max, offset=offset, astype=self.store.class_dictionary['input_type'])
 
     def __len__(self):
         return self.store.len()
@@ -210,7 +208,7 @@ def CreateImageLoaders(s3, bucket, dataset_dfn, class_dict,
                       height=640, width=640, 
                       image_transform=None, label_transform=None, 
                       normalize=True, flipX=True, flipY=False, 
-                      rotate=3, scale_min=0.75, scale_max=1.25, offset=0.1, astype='float32',
+                      rotate=3, scale_min=0.75, scale_max=1.25, offset=0.1,
                       random_seed = None):
 
     dataset = ImagesDataset(s3, bucket, dataset_dfn, class_dict, 
@@ -218,7 +216,7 @@ def CreateImageLoaders(s3, bucket, dataset_dfn, class_dict,
                             image_transform=image_transform, label_transform=label_transform, 
                             normalize=normalize,  enable_transform=default_loaders[0]['enable_transform'], 
                             flipX=flipX, flipY=flipY, 
-                            rotate=rotate, scale_min=scale_min, scale_max=scale_max, offset=offset, astype=astype)
+                            rotate=rotate, scale_min=scale_min, scale_max=scale_max, offset=offset)
 
     # Creating data indices for training and validation splits:
     dataset_size = len(dataset)
@@ -245,7 +243,7 @@ def CreateImageLoaders(s3, bucket, dataset_dfn, class_dict,
                             image_transform=image_transform, label_transform=label_transform, 
                             normalize=normalize,  enable_transform=default_loaders[i]['enable_transform'], 
                             flipX=flipX, flipY=flipY, 
-                            rotate=rotate, scale_min=scale_min, scale_max=scale_max, offset=offset, astype=astype)
+                            rotate=rotate, scale_min=scale_min, scale_max=scale_max, offset=offset)
 
             # Creating PT data samplers and loaders:
             loader['batches'] =int((split-startIndex)/batch_size)
