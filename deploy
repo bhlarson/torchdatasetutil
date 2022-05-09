@@ -35,7 +35,7 @@ def parse_arguments():
 def cmd(command, check=True):
     print('$ '+command)
     initial = datetime.now()
-    result = subprocess.run(command, shell=True, check=check)
+    result = subprocess.run(command, shell=True, capture_output=True, check=check)
     dt = (datetime.now()-initial).total_seconds()
     print('Complete {}s: {}={}'.format(dt, result, command))
     return result.returncode, result.stderr, result.stdout

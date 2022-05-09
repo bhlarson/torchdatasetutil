@@ -104,7 +104,7 @@ class ImagesStore(ImUtil):
         return len(self.images)
 
     def __next__(self):
-        if self.i < self.len():
+        if self.i < self.__len__():
             result = self.__getitem__(self.i)
             self.i += 1
             return result
@@ -112,7 +112,7 @@ class ImagesStore(ImUtil):
             raise StopIteration
 
     def __getitem__(self, idx):
-        if idx >= 0 and idx < self.len():
+        if idx >= 0 and idx < self.__len__():
             img = self.DecodeImage(self.bucket, self.images[idx], self.imflags)
             ann = self.DecodeImage(self.bucket, self.labels[idx], self.anflags)
             if ann is not None:
@@ -121,7 +121,7 @@ class ImagesStore(ImUtil):
 
             return result
         else:
-            print('ImagesStore.__getitem__ idx {} invalid.  Must be >=0 and < ImagesStore.len={}'.format(idx, self.len()))
+            print('ImagesStore.__getitem__ idx {} invalid.  Must be >=0 and < ImagesStore.__len__={}'.format(idx, self.__len__()))
             return None
 
 

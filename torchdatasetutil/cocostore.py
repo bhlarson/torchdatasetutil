@@ -153,7 +153,7 @@ class CocoStore(ImUtil):
 
             return result
         else:
-            print('CocoStore.__getitem__ idx {} invalid.  Must be >=0 and < CocoStore.len={}'.format(idx, self.len()))
+            print('CocoStore.__getitem__ idx {} invalid.  Must be >=0 and < CocoStore.len={}'.format(idx, self.__len__()))
             return None
 
 class CocoDataset(Dataset):
