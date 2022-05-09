@@ -100,7 +100,7 @@ class ImagesStore(ImUtil):
                 trainAnn[ann==obj['id']] = obj['trainId']
         return trainAnn
 
-    def len(self):
+    def __len__(self):
         return len(self.images)
 
     def __next__(self):
@@ -164,7 +164,7 @@ class ImagesDataset(Dataset):
                                      scale_min=scale_min, scale_max=scale_max, offset=offset, astype=self.store.class_dictionary['input_type'])
 
     def __len__(self):
-        return self.store.len()
+        return self.store.__len__()
 
     def __getitem__(self, idx):
         result = self.store.__getitem__(idx)
