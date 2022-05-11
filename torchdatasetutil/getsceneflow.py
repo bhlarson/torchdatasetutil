@@ -11,13 +11,13 @@ from zipfile import ZipFile
 from tqdm import tqdm
 
 
-urls=[{"name":"sintel", "url": "http://files.is.tue.mpg.de/sintel/MPI-Sintel-complete.zip"},
+sceneflow_urls=[{"name":"sintel", "url": "http://files.is.tue.mpg.de/sintel/MPI-Sintel-complete.zip"},
       {"name":"FlyingChairs", "url": "https://lmb.informatik.uni-freiburg.de/data/FlyingChairs/FlyingChairs.zip"},
       {"name":"FlyingChairs2", "url": "https://lmb.informatik.uni-freiburg.de/data/FlyingChairs2.zip"},
       {"name":"kitti", "url": "https://s3.eu-central-1.amazonaws.com/avg-kitti/data_scene_flow.zip"},
       {"name":"kitti", "url": "https://s3.eu-central-1.amazonaws.com/avg-kitti/data_stereo_flow.zip"}  ]
 
-def getsceneflow(s3, s3def, urls=urls, dataset='sceneflow'):
+def getsceneflow(s3, s3def, urls=sceneflow_urls, dataset='sceneflow'):
 
     with tempfile.TemporaryDirectory() as tmpdir:
 
@@ -54,7 +54,7 @@ def parse_arguments():
     parser.add_argument('-dataset_path', type=str, default='./dataset', help='Local dataset path')
     parser.add_argument('-credentails', type=str, default='creds.yaml', help='Credentials file.')
     parser.add_argument('-min', action='store_true',help='Minimum test')
-    parser.add_argument('-urls', type=json.loads, default=urls, 
+    parser.add_argument('-urls', type=json.loads, default=None, 
                         help='List of coco dataset URLs to load.  If none, the public urls list will be loaded')
 
 
@@ -68,7 +68,7 @@ def main(args):
     if args.min:
         args.cocourl = [args.cocourl[-2], args.cocourl[-1]]
 
-    getsceneflow(s3, s3def, urls=urls, dataset='sceneflow')
+    getsceneflow(s3, s3def, urls=sceneflow_urls, dataset='sceneflow')
 
     print('{} {} complete'.format(__file__, __name__))
 

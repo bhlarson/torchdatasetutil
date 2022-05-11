@@ -51,10 +51,10 @@ def parse_arguments():
                         help='List of coco dataset URLs to load.  If none, coco 2017 datafiles are loaded from https://cocodataset.org/#download')
     parser.add_argument('-cocodatasetname', type=str, default='coco', help='coco dataset name in objet storage')
 
-    parser.add_argument('-getsceneflow', action='store_true',help='Get sintel dataset')
-    parser.add_argument('-sintelurl', type=json.loads, default=None, 
+    parser.add_argument('-getsceneflow', action='store_true',help='Get sceneflow datasets')
+    parser.add_argument('-sceneflowurl', type=json.loads, default=None, 
                         help='List of sintel dataset URLs to load.  If none, http://files.is.tue.mpg.de/sintel/MPI-Sintel-complete.zip is loaded')
-    parser.add_argument('-sinteldatasetname', type=str, default='sintel', help='Sintel dataset name in objet storage')
+    parser.add_argument('-sceneflowdatasetname', type=str, default='sceneflow', help='Sintel dataset name in objet storage')
 
     args = parser.parse_args()
     return args
@@ -74,7 +74,7 @@ def main(args):
         if args.sintelurl is not None:
             getsceneflow(s3, s3def, cocourl=args.sintelurl, dataset=args.sinteldatasetname)
         else:
-            getsgetsceneflowintel(s3, s3def, dataset=args.sinteldatasetname)
+            getsceneflow(s3, s3def, dataset=args.sinteldatasetname)
    
     if args.test_iterator:
         dataset_desc = s3.GetDict(s3def['sets']['dataset']['bucket'],args.dataset_train)
