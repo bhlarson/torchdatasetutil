@@ -11,6 +11,7 @@ from torch.utils.data import Dataset
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 
+
 from pymlutil.s3 import s3store, Connect
 from pymlutil.jsonutil import ReadDict
 from pymlutil.imutil import ImUtil, ImTransform
@@ -18,7 +19,7 @@ from pymlutil.imutil import ImUtil, ImTransform
 from .cocostore import *
 from .imstore import *
 from .getcoco import getcoco
-from .getsintel import getsintel
+from .getsceneflow import getsceneflow
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Process arguments')
@@ -50,7 +51,7 @@ def parse_arguments():
                         help='List of coco dataset URLs to load.  If none, coco 2017 datafiles are loaded from https://cocodataset.org/#download')
     parser.add_argument('-cocodatasetname', type=str, default='coco', help='coco dataset name in objet storage')
 
-    parser.add_argument('-getsintel', action='store_true',help='Get sintel dataset')
+    parser.add_argument('-getsceneflow', action='store_true',help='Get sintel dataset')
     parser.add_argument('-sintelurl', type=json.loads, default=None, 
                         help='List of sintel dataset URLs to load.  If none, http://files.is.tue.mpg.de/sintel/MPI-Sintel-complete.zip is loaded')
     parser.add_argument('-sinteldatasetname', type=str, default='sintel', help='Sintel dataset name in objet storage')
@@ -69,11 +70,11 @@ def main(args):
         else:
             getcoco(s3, s3def, dataset=args.cocodatasetname)
 
-    if args.getsintel:
+    if args.getsceneflow:
         if args.sintelurl is not None:
-            getsintel(s3, s3def, cocourl=args.sintelurl, dataset=args.sinteldatasetname)
+            getsceneflow(s3, s3def, cocourl=args.sintelurl, dataset=args.sinteldatasetname)
         else:
-            getsintel(s3, s3def, dataset=args.sinteldatasetname)
+            getsgetsceneflowintel(s3, s3def, dataset=args.sinteldatasetname)
    
     if args.test_iterator:
         dataset_desc = s3.GetDict(s3def['sets']['dataset']['bucket'],args.dataset_train)
