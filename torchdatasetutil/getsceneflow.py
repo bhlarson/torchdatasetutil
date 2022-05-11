@@ -6,7 +6,6 @@ import subprocess
 import shutil
 from os import fspath
 import tempfile
-from psycopg2 import connect
 from pymlutil.s3 import s3store, Connect
 from zipfile import ZipFile
 from tqdm import tqdm
