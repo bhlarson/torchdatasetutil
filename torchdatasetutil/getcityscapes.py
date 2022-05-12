@@ -6,33 +6,57 @@ import subprocess
 import shutil
 from os import fspath
 import tempfile
+from pymlutil.jsonutil import ReadDict
 from pymlutil.s3 import s3store, Connect
 from zipfile import ZipFile
 from tqdm import tqdm
 
 
-sceneflow_urls=[{"name":"sintel", "url": "http://files.is.tue.mpg.de/sintel/MPI-Sintel-complete.zip"},
-      {"name":"FlyingChairs", "url": "https://lmb.informatik.uni-freiburg.de/data/FlyingChairs/FlyingChairs.zip"},
-      {"name":"FlyingChairs2", "url": "https://lmb.informatik.uni-freiburg.de/data/FlyingChairs2.zip"},
-      {"name":"kitti", "url": "https://s3.eu-central-1.amazonaws.com/avg-kitti/data_scene_flow.zip"},
-      {"name":"kitti", "url": "https://s3.eu-central-1.amazonaws.com/avg-kitti/data_stereo_flow.zip"}  ]
+cityscapeurl='https://www.cityscapes-dataset.com'
+citypackages=[
+    {'id': 1, 'name': 'gtFine_trainvaltest.zip', 'size': '241MB'},
+    {'id': 2, 'name': 'gtCoarse.zip', 'size': '1.3GB'},
+    {'id': 3, 'name': 'leftImg8bit_trainvaltest.zip', 'size': '11GB'},
+    {'id': 4, 'name': 'leftImg8bit_trainextra.zip', 'size': '44GB'},
+    {'id': 8, 'name': 'camera_trainvaltest.zip', 'size': '2MB'},
+    {'id': 9, 'name': 'camera_trainextra.zip', 'size': '8MB'},
+    {'id': 10, 'name': 'vehicle_trainvaltest.zip', 'size': '2MB'},
+    {'id': 11, 'name': 'vehicle_trainextra.zip', 'size': '7MB'},
+    {'id': 12, 'name': 'leftImg8bit_demoVideo.zip', 'size': '6.6GB'},
+    {'id': 28, 'name': 'gtBbox_cityPersons_trainval.zip', 'size': '2.2MB'},
+]
 
-def getsceneflow(s3, s3def, urls=sceneflow_urls, dataset='sceneflow'):
+def getcityscapes(s3, s3def, creds, dataset='cityscapes', cityscapeurl=cityscapeurl, citypackages=citypackages):
+
+    tempcookie = tempfile.NamedTemporaryFile( prefix='cookie', suffix='txt')
+    sysmsg = "wget --keep-session-cookies --save-cookies={} --post-data 'username={}&password={}&submit=Login' {}/login/".format(
+        tempcookie.name,
+        creds['cityscapes']['username'], 
+        creds['cityscapes']['password'],
+        cityscapeurl)
+        
+    #print(sysmsg)
+    os.system(sysmsg)
 
     saved_name = '{}/{}'.format(s3def['sets']['dataset']['prefix'] , dataset)
-    for data in urls:
+    for citypackage in citypackages:
         with tempfile.TemporaryDirectory() as tmpdir:
-            outpath = '{}/{}'.format(tmpdir,os.path.basename(data['url']))
+            #https://www.cityscapes-dataset.com/file-handling/?packageID=1
+            url = 'wget  --show-progress --load-cookies {} --content-disposition {}/file-handling/?packageID={}'.format(
+                tempcookie.name,
+                cityscapeurl,
+                citypackage['id'])
+            outpath = '{}/{}'.format(tmpdir, citypackage['name'])
             if os.path.isfile(outpath):
                 print('{} exists.  Skipping'.format(outpath))
             else:
-                sysmsg = 'wget -O {} {} '.format(outpath, data['url'])
+                sysmsg = 'wget -O {} {} '.format(outpath, url)
                 print(sysmsg)
                 os.system(sysmsg)
 
-            dest = '{}/{}'.format(tmpdir,data['name'])
+            dest = '{}/{}'.format(tmpdir,dataset)
             with ZipFile(outpath,"r") as zip_ref:
-                for file in tqdm(iterable=zip_ref.namelist(), total=len(zip_ref.namelist()), desc="Extract zip"):
+                for file in tqdm(iterable=zip_ref.namelist(), total=len(zip_ref.namelist())):
                     zip_ref.extract(member=file, path=fspath(dest))
 
             os.remove(outpath) # Remove zip file once extracted
@@ -52,9 +76,7 @@ def parse_arguments():
     parser.add_argument('-dataset_path', type=str, default='./dataset', help='Local dataset path')
     parser.add_argument('-credentails', type=str, default='creds.yaml', help='Credentials file.')
     parser.add_argument('-min', action='store_true',help='Minimum test')
-    parser.add_argument('-urls', type=json.loads, default=None, 
-                        help='List of coco dataset URLs to load.  If none, the public urls list will be loaded')
-
+    parser.add_argument('-cityscapeurl', type=str, default=cityscapeurl, help='Cityscape URL')
 
     args = parser.parse_args()
     return args
@@ -62,11 +84,14 @@ def parse_arguments():
 def main(args):
 
     s3, _, s3def = Connect(args.credentails)
+    creds = ReadDict(args.credentails)
 
     if args.min:
-        args.urls = [args.urls[-2], args.urls[-1]]
+        packages = [citypackages[8], citypackages[9]]
+    else:
+        packages = citypackages
 
-    getsceneflow(s3, s3def, urls=sceneflow_urls, dataset='sceneflow')
+    getcityscapes(s3, s3def, creds=creds, dataset='cityscapes', cityscapeurl=cityscapeurl, citypackages=packages)
 
     print('{} {} complete'.format(__file__, __name__))
 

@@ -44,23 +44,10 @@ def getcoco(s3, s3def, cocourl=cocourl, dataset='coco'):
             os.remove(outpath) # Remove zip
 
             print('Save {} to {}/{}'.format(dest, s3def['sets']['dataset']['bucket'], saved_name))
-            if s3.PutDir(s3def['sets']['dataset']['bucket'], dest, saved_name):
-                shutil.rmtree(tmpdir, ignore_errors=True)
+            s3.PutDir(s3def['sets']['dataset']['bucket'], dest, saved_name)
 
     url = s3.GetUrl(s3def['sets']['dataset']['bucket'], saved_name)
     print("Complete. Results saved to {}".format(url))
-
-def Test(args):
-
-    s3, _, s3def = Connect(args.credentails)
-
-    if args.min:
-        args.cocourl = [args.cocourl[-2], args.cocourl[-1]]
-
-    getcoco(s3, s3def, cocourl=args.cocourl, dataset='coco_test')
-
-    print('{} {} complete'.format(__file__, __name__))
-
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Process arguments')
@@ -77,7 +64,18 @@ def parse_arguments():
 
     args = parser.parse_args()
     return args
-    
+
+def main(args):
+
+    s3, _, s3def = Connect(args.credentails)
+
+    if args.min:
+        args.cocourl = [args.cocourl[-2], args.cocourl[-1]]
+
+    getcoco(s3, s3def, cocourl=args.cocourl, dataset='coco_test')
+
+    print('{} {} complete'.format(__file__, __name__))
+
 if __name__ == '__main__':
     import argparse
     args = parse_arguments()
@@ -90,4 +88,4 @@ if __name__ == '__main__':
         debugpy.wait_for_client()  # Pause the program until a remote debugger is attached
         print("Debugger attached")
 
-    Test(args)
+    main(args)

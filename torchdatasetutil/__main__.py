@@ -75,7 +75,7 @@ def main(args):
             getsceneflow(s3, s3def, cocourl=args.sceneflowurl, dataset=args.sceneflowdatasetname)
         else:
             getsceneflow(s3, s3def, dataset=args.sceneflowdatasetname)
-   
+
     if args.test_iterator:
         dataset_desc = s3.GetDict(s3def['sets']['dataset']['bucket'],args.dataset_train)
         class_dictionary = s3.GetDict(s3def['sets']['dataset']['bucket'],args.class_dict) 
