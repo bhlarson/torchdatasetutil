@@ -35,6 +35,8 @@ setup(
     install_requires=['pyyaml', 'prettytable', 'minio', 'numpy', 'opencv-python', 'torch', 'scikit-learn'], # add any additional packages that 
     url = 'https://github.com/bhlarson/torchdatasetutil',
     keywords=['python', 'Machine Learning', 'Utilities'],
+    include_package_data=True,
+    package_data = {'torchdatasetutil': ['*.yaml']},
     classifiers= [
         "Development Status :: 1 - Planning",
         "Intended Audience :: Developers",
