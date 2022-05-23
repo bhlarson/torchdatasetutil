@@ -230,6 +230,8 @@ class CocoDataset(Dataset):
             print('CocoDataset.__getitem__ idx {} returned result=None.'.format(idx))
         return image, label, imgMean, imgStd
 
+# Handle corrupt images:
+# https://github.com/pytorch/pytorch/issues/1137
 def collate_fn(batch):
     batch = list(filter(lambda x: x is not None, batch))
     return torch.utils.data.dataloader.default_collate(batch)
