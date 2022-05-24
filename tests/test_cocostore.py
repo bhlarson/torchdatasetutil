@@ -7,7 +7,7 @@ import json
 from collections import defaultdict
 import unittest
 import torch
-import tqdm
+from tqdm import tqdm
 from torch.utils.data import Dataset
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
@@ -40,7 +40,7 @@ class Test(unittest.TestCase):
                         image_paths=parameters['coco']['train_image_path'], 
                         class_dictionary=parameters['coco']['class_dict'])
 
-        for i, iman in enumerate(store):
+        for i, iman in  tqdm(enumerate(store)):
             img = store.MergeIman(iman['img'], iman['ann'])
             is_success, buffer = cv2.imencode(".png", img)
             if not is_success:
@@ -63,22 +63,25 @@ class Test(unittest.TestCase):
         imUtil = ImUtil(dataset_desc, class_dictionary)
 
         loaders = CreateCocoLoaders(s3, bucket=s3def['sets']['dataset']['bucket'],
-                                     class_dict=parameters['coco']['class_dict'])
+                                     class_dict=parameters['coco']['class_dict'], 
+                                     batch_size=parameters['coco']['batch_size'], 
+                                     num_workers=parameters['coco']['num_workers'])
 
-        for i, data in enumerate(loaders[0]['dataloader']):
-            inputs, labels, mean, stdev = data
-            images = inputs.cpu().permute(0, 2, 3, 1).numpy()
-            labels = np.around(labels.cpu().numpy()).astype('uint8')
-            mean = mean.cpu().numpy()
-            stdev = stdev.cpu().numpy()
+        for loader in tqdm(loaders, desc="Loader"):
+            for i, data in tqdm(enumerate(loader['dataloader']), desc="Batch Reads"):
+                inputs, labels, mean, stdev = data
+                images = inputs.cpu().permute(0, 2, 3, 1).numpy()
+                labels = np.around(labels.cpu().numpy()).astype('uint8')
+                mean = mean.cpu().numpy()
+                stdev = stdev.cpu().numpy()
 
-            for j, image in enumerate(images):
-                img = imUtil.MergeIman(images[j], labels[j], mean[j], stdev[j])
-                is_success, buffer = cv2.imencode(".png", img)
-                if not is_success:
-                    raise ValueError('test_imstore test_CreateCocoLoaders cv2.imencode failure batch {} image {}'.format(i, j))
-            if 'test_images' in parameters['coco'] and i >= parameters['coco']['test_images']:
-                break
+                for j, image in enumerate(images):
+                    img = imUtil.MergeIman(images[j], labels[j], mean[j], stdev[j])
+                    is_success, buffer = cv2.imencode(".png", img)
+                    if not is_success:
+                        raise ValueError('test_imstore test_CreateCocoLoaders cv2.imencode failure batch {} image {}'.format(i, j))
+                if 'test_images' in parameters['coco'] and parameters['coco']['test_images'] is not None and i >= parameters['coco']['test_images']:
+                    break
 
 if __name__ == '__main__':
     unittest.main()

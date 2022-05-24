@@ -22,7 +22,8 @@ class CocoStore(ImUtil):
                  image_paths, # path in bucket to dataset images
                  class_dictionary, # json or yaml class dictionary object described in  https://github.com/bhlarson/torchdatasetutil/blob/main/torchdatasetutil.ipynb#ClassDictionary
                  imflags=cv2.IMREAD_COLOR, # image colorspace to load in cv2 format
-                 name_decoration='' ): # Additional test to append to the filename to load
+                 name_decoration='',  # Additional test to append to the filename to load
+                 numTries=3 ): # Number of read retries
 
         self.s3 = s3 
         self.bucket = bucket 
@@ -31,6 +32,7 @@ class CocoStore(ImUtil):
         self.image_paths = image_paths
         self.name_decoration = name_decoration
         self.imflags = imflags
+        self.numTries = numTries
 
 
 
@@ -98,8 +100,8 @@ class CocoStore(ImUtil):
 
     def DecodeImage(self, bucket, objectname):
         img = None
-        numTries = 3
-        for i in range(numTries):
+        
+        for i in range(self.numTries):
             imgbuff = self.s3.GetObject(bucket, objectname)
             if imgbuff:
                 imgbuff = np.frombuffer(imgbuff, dtype='uint8')
@@ -172,6 +174,7 @@ class CocoDataset(Dataset):
         scale_min=0.75, 
         scale_max=1.25, 
         offset=0.1,
+        numTries=3, # Number of read retries
     ):
         self.image_transform = image_transform
         self.label_transform = label_transform
@@ -187,8 +190,9 @@ class CocoDataset(Dataset):
         self.scale_min = scale_min
         self.scale_max = scale_max
         self.offset = offset
+        self.numTries = numTries
 
-        self.store = CocoStore(s3, bucket, dataset_desc, image_paths, class_dictionary, imflags=self.imflags, name_decoration=name_decoration)
+        self.store = CocoStore(s3, bucket, dataset_desc, image_paths, class_dictionary, imflags=self.imflags, name_decoration=name_decoration, numTries=self.numTries)
 
 
         self.imTransform = ImTransform(height=height, width=width, 
@@ -246,7 +250,7 @@ def CreateCocoLoaders(s3, bucket, class_dict,
                       image_transform=None, label_transform=None, 
                       normalize=True, flipX=True, flipY=False, 
                       rotate=3, scale_min=0.75, scale_max=1.25, offset=0.1,
-                      random_seed = None):
+                      random_seed = None, numTries=3):
 
     pin_memory = False
     if cuda:
@@ -296,7 +300,7 @@ def main(args):
                           dataset_desc=args.dataset_train, 
                           image_paths=args.train_image_path, 
                           class_dictionary=args.class_dict, 
-                          imflags=args.imflags)
+                          imflags=args.imflags, numTries=args.numTries)
 
         for i, iman in enumerate(store):
             img = store.MergeIman(iman['img'], iman['ann'])
@@ -318,7 +322,8 @@ def main(args):
                                     num_workers=args.num_workers, 
                                     cuda = args.cuda,
                                     loaders = loaders_dfn,
-                                    height = args.height, width = args.width
+                                    height = args.height, width = args.width,
+                                    numTries=args.numTries
                                 )
         os.makedirs(args.test_path, exist_ok=True)
 
@@ -365,7 +370,8 @@ def parse_arguments():
     parser.add_argument('-height', type=int, default=640, help='Batch image height')
     parser.add_argument('-width', type=int, default=640, help='Batch image width')
     parser.add_argument('-imflags', type=int, default=cv2.IMREAD_COLOR, help='cv2.imdecode flags')
-    parser.add_argument('-cuda', type=bool, default=True)
+    parser.add_argument('-cuda', type=bool, default=True, help='pytorch CUDA flag') 
+    parser.add_argument('-numTries', type=int, default=3, help="Read retries")
 
     args = parser.parse_args()
     return args

@@ -6,6 +6,8 @@ coco:
   val_image_path: 'data/coco/val2017'
   class_dict: 'model/segmin/coco.json'
   test_images: 10
+  num_workers: 8
+  batch_size: 2
 
 images:
   credentials: 'creds.yaml'
