@@ -5,7 +5,7 @@ coco:
   train_image_path: 'data/coco/train2017'
   val_image_path: 'data/coco/val2017'
   class_dict: 'model/segmin/coco.json'
-  test_images: null
+  test_images: 10
   num_workers: 1
   batch_size: 2
 
