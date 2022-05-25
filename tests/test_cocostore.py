@@ -40,14 +40,17 @@ class Test(unittest.TestCase):
                         image_paths=parameters['coco']['train_image_path'], 
                         class_dictionary=parameters['coco']['class_dict'])
 
-        for i, iman in  tqdm(enumerate(store)):
+        for i, iman in  tqdm(enumerate(store),
+                             desc="CocoStore Reads",
+                             total=len(store),
+                             bar_format='{desc:<8.5}{percentage:3.0f}%|{bar:50}{r_bar}',):
             img = store.MergeIman(iman['img'], iman['ann'])
             is_success, buffer = cv2.imencode(".png", img)
             if not is_success:
                 raise ValueError('test_cocostore test_iterator cv2.imencode failure  image {}'.format(i))
             if img is None:
                 raise ValueError('img is None')
-            if 'test_images' in parameters['coco'] and i >= parameters['coco']['test_images']:
+            if 'test_images' in parameters['coco'] and parameters['coco']['test_images'] is not None and i >= parameters['coco']['test_images']:
                 break
 
     def test_CreateCocoLoaders(self):
@@ -67,7 +70,7 @@ class Test(unittest.TestCase):
                                      batch_size=parameters['coco']['batch_size'], 
                                      num_workers=parameters['coco']['num_workers'])
 
-        for loader in tqdm(loaders, desc="Loader"):
+        for loader in tqdm(loaders, desc="CreateCocoLoaders"):
             for i, data in tqdm(enumerate(loader['dataloader']), 
                                 desc="Batch Reads", 
                                 total=loader['batches'],
