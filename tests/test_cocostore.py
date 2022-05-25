@@ -68,7 +68,10 @@ class Test(unittest.TestCase):
                                      num_workers=parameters['coco']['num_workers'])
 
         for loader in tqdm(loaders, desc="Loader"):
-            for i, data in tqdm(enumerate(loader['dataloader']), desc="Batch Reads"):
+            for i, data in tqdm(enumerate(loader['dataloader']), 
+                                desc="Batch Reads", 
+                                total=loader['batches'],
+                                bar_format='{desc:<8.5}{percentage:3.0f}%|{bar:50}{r_bar}',):
                 inputs, labels, mean, stdev = data
                 images = inputs.cpu().permute(0, 2, 3, 1).numpy()
                 labels = np.around(labels.cpu().numpy()).astype('uint8')
