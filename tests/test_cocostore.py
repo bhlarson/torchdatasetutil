@@ -40,14 +40,12 @@ class Test(unittest.TestCase):
                         image_paths=parameters['coco']['train_image_path'], 
                         class_dictionary=parameters['coco']['class_dict'])
 
-<<<<<<< HEAD
-        for i, iman in tqdm(enumerate(store), desc='COCO read image', total=len(store),bar_format='{desc:<8.5}{percentage:3.0f}%|{bar:50}{r_bar}'):
-=======
+
         for i, iman in  tqdm(enumerate(store),
                              desc="CocoStore Reads",
                              total=len(store),
                              bar_format='{desc:<8.5}{percentage:3.0f}%|{bar:50}{r_bar}',):
->>>>>>> a8e11a9172f8c9c79c9fcaf87bf1c12d7a83f9cf
+
             img = store.MergeIman(iman['img'], iman['ann'])
             is_success, buffer = cv2.imencode(".png", img)
             if not is_success:
