@@ -37,8 +37,18 @@ def parse_arguments():
     parser.add_argument('-num_images', type=int, default=10, help='Number of images to display')
     parser.add_argument('-num_workers', type=int, default=1, help='Data loader workers')
     parser.add_argument('-batch_size', type=int, default=4, help='Dataset batch size')
-    parser.add_argument('-test_iterator', type=bool, default=True, help='True to test iterator')
-    parser.add_argument('-test_dataset', type=bool, default=True, help='True to test dataset')
+
+    parser.add_argument('-ci', action='store_true', help='True to test iterator')
+    parser.add_argument('-coco_iterator', type=bool, default=False, help='True to test iterator')
+    parser.add_argument('-cd', action='store_true', help='True to test dataset')
+    parser.add_argument('-coco_dataset', action='store_true', help='True to test dataset')
+
+    parser.add_argument('-ii', action='store_true', help='True to test iterator')
+    parser.add_argument('-image_iterator', type=bool, default=False, help='True to test iterator')
+    parser.add_argument('-id', action='store_true', help='True to test dataset')
+    parser.add_argument('-image_dataset', action='store_true', help='True to test dataset')
+
+
     parser.add_argument('-test_path', type=str, default='./datasets_test/', help='Test path ending in a forward slash')
 
     parser.add_argument('-height', type=int, default=640, help='Batch image height')
@@ -57,6 +67,19 @@ def parse_arguments():
     parser.add_argument('-sceneflowdatasetname', type=str, default='sceneflow', help='Sintel dataset name in objet storage')
 
     args = parser.parse_args()
+
+    if args.ci:
+        args.coco_iterator = True
+
+    if args.cd:
+        args.coco_dataset = True
+
+    if args.ii:
+        args.image_iterator = True
+
+    if args.id:
+        args.image_dataset = True
+    
     return args
 
 
@@ -75,6 +98,10 @@ def main(args):
             getsceneflow(s3, s3def, cocourl=args.sceneflowurl, dataset=args.sceneflowdatasetname)
         else:
             getsceneflow(s3, s3def, dataset=args.sceneflowdatasetname)
+
+        dataset_desc = s3.GetDict(s3def['sets']['dataset']['bucket'],args.dataset_train)
+        class_dictionary = s3.GetDict(s3def['sets']['dataset']['bucket'],args.class_dict) 
+        imUtil = ImUtil(dataset_desc, class_dictionary)
 
     if args.test_iterator:
         dataset_desc = s3.GetDict(s3def['sets']['dataset']['bucket'],args.dataset_train)
@@ -95,12 +122,34 @@ def main(args):
                 print ('test_iterator complete')
                 break
 
-    if args.test_dataset:
+    if args.coco_iterator:
+        loaders_dfn = [{'set':'train', 'dataset': args.dataset_train, 'image_path': args.train_image_path, 'enable_transform':True},
+                {'set':'test', 'dataset':  args.dataset_val, 'image_path': args.val_image_path, 'enable_transform':False}]
 
-        dataset_desc = s3.GetDict(s3def['sets']['dataset']['bucket'],args.dataset_train)
-        class_dictionary = s3.GetDict(s3def['sets']['dataset']['bucket'],args.class_dict) 
-        imUtil = ImUtil(dataset_desc, class_dictionary)
+        loaders = CreateCocoLoaders(s3, bucket=s3def['sets']['dataset']['bucket'],
+                                    class_dict=args.class_dict, 
+                                    batch_size=args.batch_size, 
+                                    num_workers=args.num_workers,
+                                    cuda = args.cuda,
+                                    loaders = loaders_dfn,
+                                    height = args.height, width = args.width,
+                                    numTries=args.numTries
+                                   )
 
+        for loader in tqdm(loaders, desc="Loader"):
+            for i, data in tqdm(enumerate(loader['dataloader']), 
+                                desc="Batch Reads", 
+                                total=loader['batches'],
+                                bar_format='{desc:<8.5}{percentage:3.0f}%|{bar:50}{r_bar}',):
+                inputs, labels, mean, stdev = data
+                assert(inputs is not None)
+                assert(labels is not None)
+
+            if args.num_images > 0 and i >= args.num_images:
+                print ('test_iterator complete')
+                break
+
+    if args.coco_dataset:
         loaders_dfn = [{'set':'train', 'dataset': args.dataset_train, 'image_path': args.train_image_path, 'enable_transform':True},
                        {'set':'test', 'dataset':  args.dataset_val, 'image_path': args.val_image_path, 'enable_transform':False}]
 
@@ -111,7 +160,8 @@ def main(args):
                                     num_workers=args.num_workers, 
                                     cuda = args.cuda,
                                     loaders = loaders_dfn,
-                                    height = args.height, width = args.width
+                                    height = args.height, width = args.width,
+                                    numTries=args.numTries
                                 )
         os.makedirs(args.test_path, exist_ok=True)
 
@@ -126,7 +176,7 @@ def main(args):
                     img = imUtil.MergeIman(images[j], labels[j], mean[j].item(), stdev[j].item())
                     write_path = '{}cocostoredataset{}{:03d}{:03d}.png'.format(args.test_path, loader['set'], i,j)
                     cv2.imwrite(write_path,img)
-                if i > min(np.ceil(args.num_images/args.batch_size), loader['batches']):
+                if args.num_images > 0 and  i > min(np.ceil(args.num_images/args.batch_size), loader['batches']):
                     break
         print ('test_dataset complete')
 

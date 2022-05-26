@@ -87,8 +87,15 @@ class ImagesStore(ImUtil):
             if imgbuff:
                 imgbuff = np.frombuffer(imgbuff, dtype='uint8')
                 img = cv2.imdecode(imgbuff, flags=self.imflags)
+
+                try:
+                    img = cv2.imdecode(imgbuff, flags=self.imflags)
+                except:
+                    print ("CocoStore::DecodeImage {}/{} cv2.imdecode exception i={}".format(bucket, objectname, i))
+                    img = None
+
             if img is None or img.size == 0 or img.shape[0] == 0 or img.shape[1] == 0:
-                print('ImagesStore::DecodeImage failed to load {}/{} try {} img={}'.format(bucket, objectname, i, img))
+                print('ImagesStore::DecodeImage failed to load {}/{} try {}'.format(bucket, objectname, i))
             else:
                 break
         return img
