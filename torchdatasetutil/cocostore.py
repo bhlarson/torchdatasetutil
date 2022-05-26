@@ -6,6 +6,7 @@ import cv2
 import json
 from collections import defaultdict
 import torch
+from tqdm import tqdm
 from torch.utils.data import Dataset
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
@@ -292,8 +293,27 @@ def main(args):
     dataset_desc = s3.GetDict(s3def['sets']['dataset']['bucket'],args.dataset_train)
     class_dictionary = s3.GetDict(s3def['sets']['dataset']['bucket'],args.class_dict) 
     imUtil = ImUtil(dataset_desc, class_dictionary)
-    
+
+    parameters = ReadDict(args.test_config)
+
+
     if args.test_iterator:
+        store = CocoStore(s3, bucket=s3def['sets']['dataset']['bucket'], 
+                        dataset_desc=parameters['coco']['dataset_train'], 
+                        image_paths=parameters['coco']['train_image_path'], 
+                        class_dictionary=parameters['coco']['class_dict'])
+
+
+
+        for i, iman in tqdm(enumerate(store), desc='COCO read image', total=len(store),bar_format='{desc:<8.5}{percentage:3.0f}%|{bar:50}{r_bar}'):
+            assert(iman['img'] is not None)
+            assert(iman['ann'] is not None)
+
+            if args.num_images > 0 and i >= args.num_images:
+                print ('test_iterator complete')
+                break
+
+    if args.view_iterator:
         os.makedirs(args.test_path, exist_ok=True)
         
         store = CocoStore(s3, bucket=s3def['sets']['dataset']['bucket'], 
@@ -306,13 +326,32 @@ def main(args):
             img = store.MergeIman(iman['img'], iman['ann'])
             write_path = '{}cocostoreiterator{:03d}.png'.format(args.test_path, i)
             cv2.imwrite(write_path,img)
-            if i >= args.num_images:
+            if args.num_images > 0 and i >= args.num_images:
                 print ('test_iterator complete')
                 break
 
     if args.test_dataset:
+        loaders = CreateCocoLoaders(s3, bucket=s3def['sets']['dataset']['bucket'],
+                                     class_dict=parameters['coco']['class_dict'], 
+                                     batch_size=parameters['coco']['batch_size'], 
+                                     num_workers=parameters['coco']['num_workers'])
 
-        loaders_dfn = [{'set':'train', 'dataset': args.dataset_train, 'image_path': args.train_image_path, 'enable_transform':True},
+        for loader in tqdm(loaders, desc="Loader"):
+            for i, data in tqdm(enumerate(loader['dataloader']), 
+                                desc="Batch Reads", 
+                                total=loader['batches'],
+                                bar_format='{desc:<8.5}{percentage:3.0f}%|{bar:50}{r_bar}',):
+                inputs, labels, mean, stdev = data
+                assert(inputs is not None)
+                assert(labels is not None)
+
+            if args.num_images > 0 and i >= args.num_images:
+                print ('test_iterator complete')
+                break
+
+    if args.view_dataset:
+
+        loaders_dfn = [{'set':'train', 'd ataset': args.dataset_train, 'image_path': args.train_image_path, 'enable_transform':True},
                        {'set':'test', 'dataset':  args.dataset_val, 'image_path': args.val_image_path, 'enable_transform':False}]
 
         loaders = CreateCocoLoaders(s3=s3, 
@@ -338,7 +377,7 @@ def main(args):
                     img = imUtil.MergeIman(images[j], labels[j], mean[j].item(), stdev[j].item())
                     write_path = '{}cocostoredataset{}{:03d}{:03d}.png'.format(args.test_path, loader['set'], i,j)
                     cv2.imwrite(write_path,img)
-                if i > min(np.ceil(args.num_images/args.batch_size), loader['batches']):
+                if args.num_images > 0 and  i > min(np.ceil(args.num_images/args.batch_size), loader['batches']):
                     break
         print ('test_dataset complete')
 
@@ -363,9 +402,14 @@ def parse_arguments():
     parser.add_argument('-num_images', type=int, default=10, help='Number of images to display')
     parser.add_argument('-num_workers', type=int, default=1, help='Data loader workers')
     parser.add_argument('-batch_size', type=int, default=4, help='Dataset batch size')
-    parser.add_argument('-test_iterator', type=bool, default=True, help='True to test iterator')
-    parser.add_argument('-test_dataset', type=bool, default=True, help='True to test dataset')
+    parser.add_argument('-i', action='store_true', help='True to test iterator')
+    parser.add_argument('-test_iterator', type=bool, default=False, help='True to test iterator')
+    parser.add_argument('-ds', action='store_true', help='True to test dataset')
+    parser.add_argument('-test_dataset', action='store_true', help='True to test dataset')
+    parser.add_argument('-view_iterator', action='store_true', help='True to test iterator')
+    parser.add_argument('-view_dataset', action='store_true', help='True to test dataset')
     parser.add_argument('-test_path', type=str, default='./datasets_test/', help='Test path ending in a forward slash')
+    parser.add_argument('-test_config', type=str, default='test.yaml', help='Test configuration file')
 
     parser.add_argument('-height', type=int, default=640, help='Batch image height')
     parser.add_argument('-width', type=int, default=640, help='Batch image width')
