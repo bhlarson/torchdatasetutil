@@ -106,7 +106,11 @@ class CocoStore(ImUtil):
             imgbuff = self.s3.GetObject(bucket, objectname)
             if imgbuff:
                 imgbuff = np.frombuffer(imgbuff, dtype='uint8')
-                img = cv2.imdecode(imgbuff, flags=self.imflags)
+                try:
+                    img = cv2.imdecode(imgbuff, flags=self.imflags)
+                except:
+                    print ("CocoStore::DecodeImage {}/{} cv2.imdecode exception i={}".format(bucket, objectname, i))
+                    img = None
             if img is None:
                 print('CocoStore::DecodeImage failed to load {}/{} try {}'.format(bucket, objectname, i))
             else:
@@ -296,6 +300,8 @@ def main(args):
 
     parameters = ReadDict(args.test_config)
 
+    loaders_dfn = [{'set':'train', 'dataset': args.dataset_train, 'image_path': args.train_image_path, 'enable_transform':True},
+                    {'set':'test', 'dataset':  args.dataset_val, 'image_path': args.val_image_path, 'enable_transform':False}]
 
     if args.test_iterator:
         store = CocoStore(s3, bucket=s3def['sets']['dataset']['bucket'], 
@@ -332,9 +338,14 @@ def main(args):
 
     if args.test_dataset:
         loaders = CreateCocoLoaders(s3, bucket=s3def['sets']['dataset']['bucket'],
-                                     class_dict=parameters['coco']['class_dict'], 
-                                     batch_size=parameters['coco']['batch_size'], 
-                                     num_workers=parameters['coco']['num_workers'])
+                                    class_dict=args.class_dict, 
+                                    batch_size=args.batch_size, 
+                                    num_workers=args.num_workers,
+                                    cuda = args.cuda,
+                                    loaders = loaders_dfn,
+                                    height = args.height, width = args.width,
+                                    numTries=args.numTries
+                                   )
 
         for loader in tqdm(loaders, desc="Loader"):
             for i, data in tqdm(enumerate(loader['dataloader']), 
@@ -350,9 +361,6 @@ def main(args):
                 break
 
     if args.view_dataset:
-
-        loaders_dfn = [{'set':'train', 'd ataset': args.dataset_train, 'image_path': args.train_image_path, 'enable_transform':True},
-                       {'set':'test', 'dataset':  args.dataset_val, 'image_path': args.val_image_path, 'enable_transform':False}]
 
         loaders = CreateCocoLoaders(s3=s3, 
                                     bucket=s3def['sets']['dataset']['bucket'],
@@ -399,8 +407,8 @@ def parse_arguments():
     parser.add_argument('-train_image_path', type=str, default='data/coco/train2017', help='Coco image path for dataset.')
     parser.add_argument('-val_image_path', type=str, default='data/coco/val2017', help='Coco image path for dataset.')
     parser.add_argument('-class_dict', type=str, default='model/segmin/coco.json', help='Model class definition file.')
-    parser.add_argument('-num_images', type=int, default=10, help='Number of images to display')
-    parser.add_argument('-num_workers', type=int, default=1, help='Data loader workers')
+    parser.add_argument('-num_images', type=int, default=0, help='Number of images to display')
+    parser.add_argument('-num_workers', type=int, default=4, help='Data loader workers')
     parser.add_argument('-batch_size', type=int, default=4, help='Dataset batch size')
     parser.add_argument('-i', action='store_true', help='True to test iterator')
     parser.add_argument('-test_iterator', type=bool, default=False, help='True to test iterator')
@@ -411,13 +419,20 @@ def parse_arguments():
     parser.add_argument('-test_path', type=str, default='./datasets_test/', help='Test path ending in a forward slash')
     parser.add_argument('-test_config', type=str, default='test.yaml', help='Test configuration file')
 
-    parser.add_argument('-height', type=int, default=640, help='Batch image height')
+    parser.add_argument('-height', type=int, default=480, help='Batch image height')
     parser.add_argument('-width', type=int, default=640, help='Batch image width')
     parser.add_argument('-imflags', type=int, default=cv2.IMREAD_COLOR, help='cv2.imdecode flags')
     parser.add_argument('-cuda', type=bool, default=True, help='pytorch CUDA flag') 
     parser.add_argument('-numTries', type=int, default=3, help="Read retries")
 
     args = parser.parse_args()
+
+    if args.i:
+        args.test_iterator = True
+
+    if args.ds:
+        args.test_dataset = True
+
     return args
     
 if __name__ == '__main__':

@@ -43,17 +43,14 @@ class Test(unittest.TestCase):
 
         for i, iman in  tqdm(enumerate(store),
                              desc="CocoStore Reads",
-                             total=len(store),
-                             bar_format='{desc:<8.5}{percentage:3.0f}%|{bar:50}{r_bar}',):
+                             total=len(store)):
 
-            img = store.MergeIman(iman['img'], iman['ann'])
-            is_success, buffer = cv2.imencode(".png", img)
-            if not is_success:
-                raise ValueError('test_cocostore test_iterator cv2.imencode failure  image {}'.format(i))
-            if img is None:
-                raise ValueError('img is None')
+            #img = store.MergeIman(iman['img'], iman['ann'])
+            assert(iman['img'] is not None)
+            assert(iman['ann'] is not None)
             if 'test_images' in parameters['coco'] and parameters['coco']['test_images'] is not None and i >= parameters['coco']['test_images']:
                 break
+
 
     def test_CreateCocoLoaders(self):
         parameters = ReadDict(test_config)
@@ -70,26 +67,24 @@ class Test(unittest.TestCase):
         loaders = CreateCocoLoaders(s3, bucket=s3def['sets']['dataset']['bucket'],
                                      class_dict=parameters['coco']['class_dict'], 
                                      batch_size=parameters['coco']['batch_size'], 
+                                     height=parameters['coco']['height'], 
+                                     width=parameters['coco']['width'],
                                      num_workers=parameters['coco']['num_workers'])
 
         for loader in tqdm(loaders, desc="CreateCocoLoaders"):
             for i, data in tqdm(enumerate(loader['dataloader']), 
                                 desc="Batch Reads", 
-                                total=loader['batches'],
-                                bar_format='{desc:<8.5}{percentage:3.0f}%|{bar:50}{r_bar}',):
+                                total=loader['batches']):
                 inputs, labels, mean, stdev = data
-                images = inputs.cpu().permute(0, 2, 3, 1).numpy()
-                labels = np.around(labels.cpu().numpy()).astype('uint8')
-                mean = mean.cpu().numpy()
-                stdev = stdev.cpu().numpy()
+                assert(inputs.size(0)==parameters['coco']['batch_size'])
+                assert(inputs.size(-1)==parameters['coco']['width'])
+                assert(inputs.size(-2)==parameters['coco']['height'])
+                assert(labels.size(0)==parameters['coco']['batch_size'])
+                assert(labels.size(-1)==parameters['coco']['width'])
+                assert(labels.size(-2)==parameters['coco']['height'])
+            if 'test_images' in parameters['coco'] and parameters['coco']['test_images'] is not None and i >= parameters['coco']['test_images']:
+                break
 
-                for j, image in enumerate(images):
-                    img = imUtil.MergeIman(images[j], labels[j], mean[j], stdev[j])
-                    is_success, buffer = cv2.imencode(".png", img)
-                    if not is_success:
-                        raise ValueError('test_imstore test_CreateCocoLoaders cv2.imencode failure batch {} image {}'.format(i, j))
-                if 'test_images' in parameters['coco'] and parameters['coco']['test_images'] is not None and i >= parameters['coco']['test_images']:
-                    break
 
 if __name__ == '__main__':
     unittest.main()

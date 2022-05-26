@@ -8,6 +8,8 @@ coco:
   test_images: 8
   num_workers: 1
   batch_size: 4
+  height: 640
+  width: 480
 
 images:
   credentials: 'creds.yaml'
