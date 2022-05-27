@@ -16,6 +16,7 @@ from pymlutil.s3 import s3store, Connect
 from pymlutil.jsonutil import ReadDict
 from pymlutil.imutil import ImUtil, ImTransform
 
+sys.path.insert(0, os.path.abspath('.'))
 import cocostore
 import imstore
 import getcoco
