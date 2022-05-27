@@ -273,7 +273,7 @@ def CreateCocoLoaders(s3, bucket, class_dict,
                     image_transform=image_transform, label_transform=label_transform, 
                     normalize=normalize,  enable_transform=loader['enable_transform'], 
                     flipX=flipX, flipY=flipY, 
-                    rotate=rotate, scale_min=scale_min, scale_max=scale_max, offset=offset)
+                    rotate=rotate, scale_min=scale_min, scale_max=scale_max, offset=offset, numTries=numTries)
 
         # Creating PT data samplers and loaders:
         loader['batches'] =int(dataset.__len__()/batch_size)
@@ -305,11 +305,9 @@ def main(args):
 
     if args.test_iterator:
         store = CocoStore(s3, bucket=s3def['sets']['dataset']['bucket'], 
-                        dataset_desc=parameters['coco']['dataset_train'], 
-                        image_paths=parameters['coco']['train_image_path'], 
-                        class_dictionary=parameters['coco']['class_dict'])
-
-
+                        dataset_desc=args.dataset_train, 
+                        image_paths=args.train_image_path, 
+                        class_dictionary = args.class_dict)
 
         for i, iman in tqdm(enumerate(store), desc='COCO read image', total=len(store),bar_format='{desc:<8.5}{percentage:3.0f}%|{bar:50}{r_bar}'):
             assert(iman['img'] is not None)
@@ -350,8 +348,7 @@ def main(args):
         for loader in tqdm(loaders, desc="Loader"):
             for i, data in tqdm(enumerate(loader['dataloader']), 
                                 desc="Batch Reads", 
-                                total=loader['batches'],
-                                bar_format='{desc:<8.5}{percentage:3.0f}%|{bar:50}{r_bar}',):
+                                total=loader['batches']):
                 inputs, labels, mean, stdev = data
                 assert(inputs is not None)
                 assert(labels is not None)

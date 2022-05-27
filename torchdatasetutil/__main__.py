@@ -10,16 +10,16 @@ import torch
 from torch.utils.data import Dataset
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
-
+from tqdm import tqdm
 
 from pymlutil.s3 import s3store, Connect
 from pymlutil.jsonutil import ReadDict
 from pymlutil.imutil import ImUtil, ImTransform
 
-from .cocostore import *
-from .imstore import *
-from .getcoco import getcoco
-from .getsceneflow import getsceneflow
+import cocostore
+import imstore
+import getcoco
+import getsceneflow
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Process arguments')
@@ -34,20 +34,30 @@ def parse_arguments():
     parser.add_argument('-train_image_path', type=str, default='data/coco/train2017', help='Coco image path for dataset.')
     parser.add_argument('-val_image_path', type=str, default='data/coco/val2017', help='Coco image path for dataset.')
     parser.add_argument('-class_dict', type=str, default='model/segmin/coco.json', help='Model class definition file.')
-    parser.add_argument('-num_images', type=int, default=10, help='Number of images to display')
+    parser.add_argument('-num_images', type=int, default=0, help='Number of images to display.  0 for full dataset')
     parser.add_argument('-num_workers', type=int, default=1, help='Data loader workers')
     parser.add_argument('-batch_size', type=int, default=4, help='Dataset batch size')
+    parser.add_argument('-num_tries', type=int, default=3, help='Image read retries')
+    
 
     parser.add_argument('-ci', action='store_true', help='True to test iterator')
     parser.add_argument('-coco_iterator', type=bool, default=False, help='True to test iterator')
     parser.add_argument('-cd', action='store_true', help='True to test dataset')
     parser.add_argument('-coco_dataset', action='store_true', help='True to test dataset')
 
+    parser.add_argument('-coco_dataset_train', type=str, default='data/coco/annotations/instances_train2017.json', help='')
+    parser.add_argument('-coco_dataset_val', type=str, default='data/coco/annotations/instances_val2017.json', help='')
+    parser.add_argument('-coco_train_image_path', type=str, default='data/coco/train2017', help='')
+    parser.add_argument('-coco_val_image_path', type=str, default='data/coco/val2017', help='')
+    parser.add_argument('-coco_class_dict', type=str, default='model/segmin/coco.json', help='')
+
     parser.add_argument('-ii', action='store_true', help='True to test iterator')
     parser.add_argument('-image_iterator', type=bool, default=False, help='True to test iterator')
     parser.add_argument('-id', action='store_true', help='True to test dataset')
     parser.add_argument('-image_dataset', action='store_true', help='True to test dataset')
 
+    parser.add_argument('-image_dataset_desc', type=str, default='annotations/lit/dataset.yaml', help='')
+    parser.add_argument('-image_class_dict', type=str, default='model/crisplit/lit.json', help='')
 
     parser.add_argument('-test_path', type=str, default='./datasets_test/', help='Test path ending in a forward slash')
 
@@ -89,57 +99,40 @@ def main(args):
 
     if args.getcoco:
         if args.cocourl is not None:
-            getcoco(s3, s3def, cocourl=args.cocourl, dataset=args.cocodatasetname)
+            getcoco.getcoco(s3, s3def, cocourl=args.cocourl, dataset=args.cocodatasetname)
         else:
-            getcoco(s3, s3def, dataset=args.cocodatasetname)
+            getcoco.getcoco(s3, s3def, dataset=args.cocodatasetname)
 
     if args.getsceneflow:
         if args.sceneflowurl is not None:
-            getsceneflow(s3, s3def, cocourl=args.sceneflowurl, dataset=args.sceneflowdatasetname)
+            getsceneflow.getsceneflow(s3, s3def, cocourl=args.sceneflowurl, dataset=args.sceneflowdatasetname)
         else:
-            getsceneflow(s3, s3def, dataset=args.sceneflowdatasetname)
+            getsceneflow.getsceneflow(s3, s3def, dataset=args.sceneflowdatasetname)
 
         dataset_desc = s3.GetDict(s3def['sets']['dataset']['bucket'],args.dataset_train)
         class_dictionary = s3.GetDict(s3def['sets']['dataset']['bucket'],args.class_dict) 
         imUtil = ImUtil(dataset_desc, class_dictionary)
 
     if args.coco_iterator:
-        loaders_dfn = [{'set':'train', 'dataset': args.dataset_train, 'image_path': args.train_image_path, 'enable_transform':True},
-                {'set':'test', 'dataset':  args.dataset_val, 'image_path': args.val_image_path, 'enable_transform':False}]
 
-        loaders = CreateCocoLoaders(s3, bucket=s3def['sets']['dataset']['bucket'],
-                                    class_dict=args.class_dict, 
-                                    batch_size=args.batch_size, 
-                                    num_workers=args.num_workers,
-                                    cuda = args.cuda,
-                                    loaders = loaders_dfn,
-                                    height = args.height, width = args.width,
-                                    numTries=args.numTries
-                                   )
+        store = cocostore.CocoStore(s3, bucket=s3def['sets']['dataset']['bucket'], 
+                        dataset_desc=args.coco_dataset_train, 
+                        image_paths=args.coco_train_image_path, 
+                        class_dictionary=args.coco_class_dict, numTries=args.num_tries,)
 
-        store = CocoStore(s3, bucket=s3def['sets']['dataset']['bucket'], 
-                        dataset_desc=parameters['coco']['dataset_train'], 
-                        image_paths=parameters['coco']['train_image_path'], 
-                        class_dictionary=parameters['coco']['class_dict'])
-
-        for loader in tqdm(loaders, desc="Loader"):
-            for i, data in tqdm(enumerate(loader['dataloader']), 
-                                desc="Batch Reads", 
-                                total=loader['batches'],
-                                bar_format='{desc:<8.5}{percentage:3.0f}%|{bar:50}{r_bar}',):
-                inputs, labels, mean, stdev = data
-                assert(inputs is not None)
-                assert(labels is not None)
+        for i, iman in tqdm(enumerate(store), desc='COCO read image', total=len(store),bar_format='{desc:<8.5}{percentage:3.0f}%|{bar:50}{r_bar}'):
+            assert(iman['img'] is not None)
+            assert(iman['ann'] is not None)
 
             if args.num_images > 0 and i >= args.num_images:
-                print ('coco_iterator complete')
+                print ('test_iterator complete')
                 break
 
     if args.coco_dataset:
         loaders_dfn = [{'set':'train', 'dataset': args.dataset_train, 'image_path': args.train_image_path, 'enable_transform':True},
                        {'set':'test', 'dataset':  args.dataset_val, 'image_path': args.val_image_path, 'enable_transform':False}]
 
-        loaders = CreateCocoLoaders(s3=s3, 
+        loaders = cocostore.CreateCocoLoaders(s3=s3, 
                                     bucket=s3def['sets']['dataset']['bucket'],
                                     class_dict=args.class_dict, 
                                     batch_size=args.batch_size, 
@@ -147,9 +140,22 @@ def main(args):
                                     cuda = args.cuda,
                                     loaders = loaders_dfn,
                                     height = args.height, width = args.width,
-                                    numTries=args.numTries
+                                    numTries=args.num_tries
                                 )
         os.makedirs(args.test_path, exist_ok=True)
+
+        for loader in tqdm(loaders, desc="Loader"):
+            for i, data in tqdm(enumerate(loader['dataloader']), 
+                                desc="Batch Reads", 
+                                total=loader['batches']):
+                inputs, labels, mean, stdev = data
+                assert(inputs is not None)
+                assert(labels is not None)
+
+            if args.num_images > 0 and i >= args.num_images:
+                print ('test_iterator complete')
+                break
+
 
         for iDataset, loader in enumerate(loaders):
             for i, data  in enumerate(loader['dataloader']):
@@ -167,62 +173,44 @@ def main(args):
         print ('coco_dataset complete')
 
     if args.image_iterator:
-        loaders_dfn = [{'set':'train', 'dataset': args.dataset_train, 'image_path': args.train_image_path, 'enable_transform':True},
-                {'set':'test', 'dataset':  args.dataset_val, 'image_path': args.val_image_path, 'enable_transform':False}]
 
-        loaders = CreateCocoLoaders(s3, bucket=s3def['sets']['dataset']['bucket'],
-                                    class_dict=args.class_dict, 
+        store = imstore.ImagesStore(s3, bucket=s3def['sets']['dataset']['bucket'], 
+                        dataset_desc=args.image_dataset_desc, 
+                        class_dictionary=args.image_class_dict, numTries=args.num_tries)
+
+        for i, iman in  tqdm(enumerate(store),
+                             desc="ImagesStore iterator reads",
+                             total=len(store)):
+            #img = store.MergeIman(iman['img'], iman['ann'])
+            assert(iman['img'] is not None)
+            assert(iman['ann'] is not None)
+            if args.num_images > 0 and i >= args.num_images:
+                print ('test_iterator complete')
+                break
+
+    if args.image_dataset:
+
+        loaders = imstore.CreateImageLoaders(s3=s3, 
+                                    bucket=s3def['sets']['dataset']['bucket'],
+                                    dataset_dfn=args.image_dataset_desc,
+                                    class_dict=args.image_class_dict, 
                                     batch_size=args.batch_size, 
-                                    num_workers=args.num_workers,
+                                    num_workers=args.num_workers, 
                                     cuda = args.cuda,
-                                    loaders = loaders_dfn,
                                     height = args.height, width = args.width,
-                                    numTries=args.numTries
-                                   )
-
+                                    numTries=args.num_tries,
+                                )
         for loader in tqdm(loaders, desc="Loader"):
             for i, data in tqdm(enumerate(loader['dataloader']), 
                                 desc="Batch Reads", 
-                                total=loader['batches'],
-                                bar_format='{desc:<8.5}{percentage:3.0f}%|{bar:50}{r_bar}',):
+                                total=loader['batches']):
                 inputs, labels, mean, stdev = data
                 assert(inputs is not None)
                 assert(labels is not None)
 
             if args.num_images > 0 and i >= args.num_images:
-                print ('coco_iterator complete')
+                print ('test_iterator complete')
                 break
-
-    if args.image_dataset:
-        loaders_dfn = [{'set':'train', 'dataset': args.dataset_train, 'image_path': args.train_image_path, 'enable_transform':True},
-                       {'set':'test', 'dataset':  args.dataset_val, 'image_path': args.val_image_path, 'enable_transform':False}]
-
-        loaders = CreateCocoLoaders(s3=s3, 
-                                    bucket=s3def['sets']['dataset']['bucket'],
-                                    class_dict=args.class_dict, 
-                                    batch_size=args.batch_size, 
-                                    num_workers=args.num_workers, 
-                                    cuda = args.cuda,
-                                    loaders = loaders_dfn,
-                                    height = args.height, width = args.width,
-                                    numTries=args.numTries
-                                )
-        os.makedirs(args.test_path, exist_ok=True)
-
-        for iDataset, loader in enumerate(loaders):
-            for i, data  in enumerate(loader['dataloader']):
-                images, labels, mean, stdev = data
-                images = images.cpu().permute(0, 2, 3, 1).numpy()
-                images = np.squeeze(images)
-                labels = labels.cpu().numpy()
-
-                for j in  range(args.batch_size):
-                    img = imUtil.MergeIman(images[j], labels[j], mean[j].item(), stdev[j].item())
-                    write_path = '{}cocostoredataset{}{:03d}{:03d}.png'.format(args.test_path, loader['set'], i,j)
-                    cv2.imwrite(write_path,img)
-                if args.num_images > 0 and  i > min(np.ceil(args.num_images/args.batch_size), loader['batches']):
-                    break
-        print ('coco_dataset complete')
 
     print('torchdatasetutil complete')
 

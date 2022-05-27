@@ -18,11 +18,12 @@ from pymlutil.imutil import ImUtil, ImTransform
 
 class ImagesStore(ImUtil):
 
-    def __init__(self, s3, bucket, dataset_desc, class_dictionary):
+    def __init__(self, s3, bucket, dataset_desc, class_dictionary, numTries=3):
         self.s3 = s3
         self.bucket = bucket
         self.dataset_desc = s3.GetDict(bucket,dataset_desc)
         self.class_dictionary = s3.GetDict(bucket,class_dictionary) 
+        self.numTries=numTries
 
         super(ImagesStore, self).__init__(dataset_desc=self.dataset_desc, class_dictionary=self.class_dictionary)
 
@@ -81,8 +82,7 @@ class ImagesStore(ImUtil):
 
     def DecodeImage(self, bucket, objectname, flags):
         img = None
-        numTries = 3
-        for i in range(numTries):
+        for i in range(self.numTries):
             imgbuff = self.s3.GetObject(bucket, objectname)
             if imgbuff:
                 imgbuff = np.frombuffer(imgbuff, dtype='uint8')
@@ -146,6 +146,7 @@ class ImagesDataset(Dataset):
         scale_min=0.75, 
         scale_max=1.25, 
         offset=0.1,
+        numTries=3
     ):
         self.image_transform = image_transform
         self.label_transform = label_transform
@@ -161,7 +162,7 @@ class ImagesDataset(Dataset):
         self.scale_max = scale_max
         self.offset = offset
 
-        self.store = ImagesStore(s3, bucket, dataset_desc, class_dictionary)
+        self.store = ImagesStore(s3, bucket, dataset_desc, class_dictionary, numTries)
 
         self.imTransform = ImTransform(height=height, width=width, 
                                      normalize=normalize, 
@@ -216,14 +217,14 @@ def CreateImageLoaders(s3, bucket, dataset_dfn, class_dict,
                       image_transform=None, label_transform=None, 
                       normalize=True, flipX=True, flipY=False, 
                       rotate=3, scale_min=0.75, scale_max=1.25, offset=0.1,
-                      random_seed = None):
+                      random_seed = None, numTries=3):
 
     dataset = ImagesDataset(s3, bucket, dataset_dfn, class_dict, 
                             height=height, width=width, 
                             image_transform=image_transform, label_transform=label_transform, 
                             normalize=normalize,  enable_transform=default_loaders[0]['enable_transform'], 
                             flipX=flipX, flipY=flipY, 
-                            rotate=rotate, scale_min=scale_min, scale_max=scale_max, offset=offset)
+                            rotate=rotate, scale_min=scale_min, scale_max=scale_max, offset=offset,numTries=numTries)
 
     # Creating data indices for training and validation splits:
     dataset_size = len(dataset)
