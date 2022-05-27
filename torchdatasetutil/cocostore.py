@@ -408,7 +408,7 @@ def parse_arguments():
     parser.add_argument('-val_image_path', type=str, default='data/coco/val2017', help='Coco image path for dataset.')
     parser.add_argument('-class_dict', type=str, default='model/segmin/coco.json', help='Model class definition file.')
     parser.add_argument('-num_images', type=int, default=0, help='Number of images to display')
-    parser.add_argument('-num_workers', type=int, default=4, help='Data loader workers')
+    parser.add_argument('-num_workers', type=int, default=1, help='Data loader workers')
     parser.add_argument('-batch_size', type=int, default=4, help='Dataset batch size')
     parser.add_argument('-i', action='store_true', help='True to test iterator')
     parser.add_argument('-test_iterator', type=bool, default=False, help='True to test iterator')
