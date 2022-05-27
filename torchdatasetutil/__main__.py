@@ -177,19 +177,22 @@ def main(args):
         store = ImagesStore(s3, bucket=s3def['sets']['dataset']['bucket'], 
                         dataset_desc=args.image_dataset_desc, 
                         class_dictionary=args.image_class_dict, numTries=args.num_tries)
-
+        failures = []
         for i, iman in  tqdm(enumerate(store),
                              desc="ImagesStore iterator reads",
                              total=len(store)):
             #img = store.MergeIman(iman['img'], iman['ann'])
             if iman['img'] is None:
+                failures.append(i)
                 print('torchdatasetutil ImagesStore failed to load image {}: {}'.format(i, store.images[i]))
             if iman['ann'] is None:
                 print('torchdatasetutil ImagesStore failed to load annotation {}: {}'.format(i, store.labels[i]))
+                failures.append(i)
             if args.num_images > 0 and i >= args.num_images:
                 print ('test_iterator complete')
                 break
 
+            print ('{} read failures'.format(len(failures)))
     if args.image_dataset:
 
         loaders = CreateImageLoaders(s3=s3, 
