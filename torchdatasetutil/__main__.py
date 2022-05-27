@@ -182,8 +182,10 @@ def main(args):
                              desc="ImagesStore iterator reads",
                              total=len(store)):
             #img = store.MergeIman(iman['img'], iman['ann'])
-            assert(iman['img'] is not None)
-            assert(iman['ann'] is not None)
+            if iman['img'] is None:
+                print('torchdatasetutil ImagesStore failed to load image {}: {}'.format(i, store.images[i]))
+            if iman['ann'] is None:
+                print('torchdatasetutil ImagesStore failed to load annotation {}: {}'.format(i, store.labels[i]))
             if args.num_images > 0 and i >= args.num_images:
                 print ('test_iterator complete')
                 break
