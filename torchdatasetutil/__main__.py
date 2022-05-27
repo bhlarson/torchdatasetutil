@@ -192,7 +192,7 @@ def main(args):
                 print ('test_iterator complete')
                 break
 
-            print ('{} read failures'.format(len(failures)))
+        print ('{} read failures'.format(len(failures)))
     if args.image_dataset:
 
         loaders = CreateImageLoaders(s3=s3, 
