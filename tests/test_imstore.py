@@ -7,7 +7,7 @@ import json
 from collections import defaultdict
 import unittest
 import torch
-import tqdm
+from tqdm import tqdm
 from torch.utils.data import Dataset
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
@@ -34,14 +34,13 @@ class Test(unittest.TestCase):
                         dataset_desc=parameters['images']['dataset'], 
                         class_dictionary=parameters['images']['class_dict'])
 
-        for i, iman in enumerate(store):
-            img = store.MergeIman(iman['img'], iman['ann'])
-            is_success, buffer = cv2.imencode(".png", img)
-            if not is_success:
-                raise ValueError('test_imstore test_iterator cv2.imencode failure  image {}'.format(i))
-            if img is None:
-                raise ValueError('img is None')
-            if 'test_images' in parameters['images'] and i >= parameters['images']['test_images']:
+        for i, iman in  tqdm(enumerate(store),
+                             desc="ImagesStore iterator reads",
+                             total=len(store)):
+            #img = store.MergeIman(iman['img'], iman['ann'])
+            assert(iman['img'] is not None)
+            assert(iman['ann'] is not None)
+            if 'test_images' in parameters['images'] and parameters['images']['test_images'] is not None  and i >= parameters['images']['test_images']:
                 break
     
     def test_CreateImageLoaders(self):
@@ -58,22 +57,35 @@ class Test(unittest.TestCase):
 
         loaders = CreateImageLoaders(s3, bucket=s3def['sets']['dataset']['bucket'],
                                      dataset_dfn=parameters['images']['dataset'],
+                                     batch_size=parameters['images']['batch_size'], 
+                                     height=parameters['images']['height'], 
+                                     width=parameters['images']['width'],
                                      class_dict=parameters['images']['class_dict'])
 
-        for i, data in enumerate(loaders[0]['dataloader']):
-            inputs, labels, mean, stdev = data
-            images = inputs.cpu().permute(0, 2, 3, 1).numpy()
-            labels = np.around(labels.cpu().numpy()).astype('uint8')
-            mean = mean.cpu().numpy()
-            stdev = stdev.cpu().numpy()
+        for loader in tqdm(loaders, desc="CreateImageLoaders"):
+            for i, data in tqdm(enumerate(loader['dataloader']), 
+                                desc="Batch Reads", 
+                                total=loader['batches']):
+                inputs, labels, mean, stdev = data
+                assert(inputs.size(0)==parameters['images']['batch_size'])
+                assert(inputs.size(-1)==parameters['images']['width'])
+                assert(inputs.size(-2)==parameters['images']['height'])
+                assert(labels.size(0)==parameters['images']['batch_size'])
+                assert(labels.size(-1)==parameters['images']['width'])
+                assert(labels.size(-2)==parameters['images']['height'])
 
-            for j, image in enumerate(images):
-                img = imUtil.MergeIman(images[j], labels[j], mean[j], stdev[j])
-                is_success, buffer = cv2.imencode(".png", img)
-                if not is_success:
-                    raise ValueError('test_imstore test_CreateImageLoaders cv2.imencode failure batch {} image {}'.format(i, j))
-            if 'test_images' in parameters['images'] and i >= parameters['images']['test_images']:
-                break
+                #images = inputs.cpu().permute(0, 2, 3, 1).numpy()
+                #labels = np.around(labels.cpu().numpy()).astype('uint8')
+                #mean = mean.cpu().numpy()
+                #stdev = stdev.cpu().numpy()
+
+                #for j, image in enumerate(images):
+                #    img = imUtil.MergeIman(images[j], labels[j], mean[j], stdev[j])
+                #    is_success, buffer = cv2.imencode(".png", img)
+                #    if not is_success:
+                #        raise ValueError('test_imstore test_CreateImageLoaders cv2.imencode failure batch {} image {}'.format(i, j))
+                if 'test_images' in parameters['images'] and parameters['images']['test_images'] is not None and i >= parameters['images']['test_images']:
+                    break
 
 if __name__ == '__main__':
     unittest.main()

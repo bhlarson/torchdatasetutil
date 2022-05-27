@@ -82,8 +82,9 @@ class Test(unittest.TestCase):
                 assert(labels.size(0)==parameters['coco']['batch_size'])
                 assert(labels.size(-1)==parameters['coco']['width'])
                 assert(labels.size(-2)==parameters['coco']['height'])
-            if 'test_images' in parameters['coco'] and parameters['coco']['test_images'] is not None and i >= parameters['coco']['test_images']:
-                break
+                
+                if 'test_images' in parameters['coco'] and parameters['coco']['test_images'] is not None and i >= parameters['coco']['test_images']:
+                    break
 
 
 if __name__ == '__main__':

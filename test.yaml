@@ -16,3 +16,7 @@ images:
   dataset: 'annotations/lit/dataset.yaml'
   class_dict: 'model/crisplit/lit.json'
   test_images: 10
+  num_workers: 1
+  batch_size: 4
+  height: 640
+  width: 480
