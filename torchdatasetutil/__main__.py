@@ -16,11 +16,10 @@ from pymlutil.s3 import s3store, Connect
 from pymlutil.jsonutil import ReadDict
 from pymlutil.imutil import ImUtil, ImTransform
 
-sys.path.insert(0, os.path.abspath('.'))
-import cocostore
-import imstore
-import getcoco
-import getsceneflow
+from .cocostore import *
+from .imstore import *
+from .getcoco import *
+from .getsceneflow import *
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Process arguments')
@@ -100,15 +99,15 @@ def main(args):
 
     if args.getcoco:
         if args.cocourl is not None:
-            getcoco.getcoco(s3, s3def, cocourl=args.cocourl, dataset=args.cocodatasetname)
+            getcoco(s3, s3def, cocourl=args.cocourl, dataset=args.cocodatasetname)
         else:
-            getcoco.getcoco(s3, s3def, dataset=args.cocodatasetname)
+            getcoco(s3, s3def, dataset=args.cocodatasetname)
 
     if args.getsceneflow:
         if args.sceneflowurl is not None:
-            getsceneflow.getsceneflow(s3, s3def, cocourl=args.sceneflowurl, dataset=args.sceneflowdatasetname)
+            getsceneflow(s3, s3def, cocourl=args.sceneflowurl, dataset=args.sceneflowdatasetname)
         else:
-            getsceneflow.getsceneflow(s3, s3def, dataset=args.sceneflowdatasetname)
+            getsceneflow(s3, s3def, dataset=args.sceneflowdatasetname)
 
         dataset_desc = s3.GetDict(s3def['sets']['dataset']['bucket'],args.dataset_train)
         class_dictionary = s3.GetDict(s3def['sets']['dataset']['bucket'],args.class_dict) 
@@ -116,7 +115,7 @@ def main(args):
 
     if args.coco_iterator:
 
-        store = cocostore.CocoStore(s3, bucket=s3def['sets']['dataset']['bucket'], 
+        store = CocoStore(s3, bucket=s3def['sets']['dataset']['bucket'], 
                         dataset_desc=args.coco_dataset_train, 
                         image_paths=args.coco_train_image_path, 
                         class_dictionary=args.coco_class_dict, numTries=args.num_tries,)
@@ -133,7 +132,7 @@ def main(args):
         loaders_dfn = [{'set':'train', 'dataset': args.dataset_train, 'image_path': args.train_image_path, 'enable_transform':True},
                        {'set':'test', 'dataset':  args.dataset_val, 'image_path': args.val_image_path, 'enable_transform':False}]
 
-        loaders = cocostore.CreateCocoLoaders(s3=s3, 
+        loaders = CreateCocoLoaders(s3=s3, 
                                     bucket=s3def['sets']['dataset']['bucket'],
                                     class_dict=args.class_dict, 
                                     batch_size=args.batch_size, 
@@ -175,7 +174,7 @@ def main(args):
 
     if args.image_iterator:
 
-        store = imstore.ImagesStore(s3, bucket=s3def['sets']['dataset']['bucket'], 
+        store = ImagesStore(s3, bucket=s3def['sets']['dataset']['bucket'], 
                         dataset_desc=args.image_dataset_desc, 
                         class_dictionary=args.image_class_dict, numTries=args.num_tries)
 
@@ -191,7 +190,7 @@ def main(args):
 
     if args.image_dataset:
 
-        loaders = imstore.CreateImageLoaders(s3=s3, 
+        loaders = CreateImageLoaders(s3=s3, 
                                     bucket=s3def['sets']['dataset']['bucket'],
                                     dataset_dfn=args.image_dataset_desc,
                                     class_dict=args.image_class_dict, 
