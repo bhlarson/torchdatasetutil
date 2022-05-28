@@ -5,7 +5,6 @@ import numpy as np
 import cv2
 import json
 from collections import defaultdict
-from sympy import re
 import functools
 import random
 import torch
