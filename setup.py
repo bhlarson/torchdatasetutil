@@ -32,7 +32,7 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     packages=find_packages(exclude="tests"),
-    install_requires=['pyyaml', 'prettytable', 'minio', 'numpy', 'opencv-python', 'torch', 'scikit-learn', 'functools', 'random'], # add any additional packages that 
+    install_requires=['pyyaml', 'prettytable', 'minio', 'numpy', 'opencv-python', 'torch', 'scikit-learn', 'functools'], # add any additional packages that 
     url = 'https://github.com/bhlarson/torchdatasetutil',
     keywords=['python', 'Machine Learning', 'Utilities'],
     include_package_data=True,
