@@ -4,6 +4,8 @@ from pycocotools import mask
 import numpy as np
 import cv2
 import json
+import functools
+import random
 from collections import defaultdict
 import torch
 from tqdm import tqdm
@@ -241,8 +243,19 @@ class CocoDataset(Dataset):
 
 # Handle corrupt images:
 # https://github.com/pytorch/pytorch/issues/1137
-def collate_fn(batch):
-    batch = list(filter(lambda x: x is not None, batch))
+# https://stackoverflow.com/questions/57815001/pytorch-collate-fn-reject-sample-and-yield-another/67583699#67583699
+def collate_fn_replace_corrupted(batch, dataset):
+    original_batch_len = len(batch)
+    batch = list(filter(lambda x: x is not None, batch)) # Filter out bad samples
+    filtered_batch_len = len(batch)
+    diff = original_batch_len - filtered_batch_len
+    if diff > 0:                
+       # Replace corrupted examples with another examples randomly
+        batch.extend([dataset[random.randint(0, len(dataset))] for _ in range(diff)])
+        # Recursive call to replace the replacements if they are corrupted
+        return collate_fn_replace_corrupted(batch, dataset)
+
+    # Finally, when the whole batch is fine, return it
     return torch.utils.data.dataloader.default_collate(batch)
 
 default_loaders = [{'set':'train', 'dataset': 'data/coco/annotations/instances_train2017.json', 'image_path':'data/coco/train2017' , 'enable_transform':True},
@@ -278,7 +291,7 @@ def CreateCocoLoaders(s3, bucket, class_dict,
         # Creating PT data samplers and loaders:
         loader['batches'] =int(dataset.__len__()/batch_size)
         loader['length'] = loader['batches']*batch_size
-
+        collate_fn = functools.partial(collate_fn_replace_corrupted, dataset=dataset)
         loader['dataloader'] = torch.utils.data.DataLoader(dataset=dataset, 
                                             batch_size=batch_size,
                                             shuffle=shuffle,

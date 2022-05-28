@@ -5,6 +5,9 @@ import numpy as np
 import cv2
 import json
 from collections import defaultdict
+from sympy import re
+import functools
+import random
 import torch
 from torch.utils.data import Dataset
 from torchvision import datasets, transforms
@@ -122,9 +125,12 @@ class ImagesStore(ImUtil):
         if idx >= 0 and idx < self.__len__():
             img = self.DecodeImage(self.bucket, self.images[idx], self.imflags)
             ann = self.DecodeImage(self.bucket, self.labels[idx], self.anflags)
-            if ann is not None:
-                ann = self.ConvertLabels(ann)
-            result = {'img':img, 'ann':ann}
+            if img is not None and ann is not None:
+                if ann is not None:
+                    ann = self.ConvertLabels(ann)
+                result = {'img':img, 'ann':ann}
+            else:
+                result = None
 
             return result
         else:
@@ -196,15 +202,25 @@ class ImagesDataset(Dataset):
                     label = self.label_transform(label)
             
         else:
-            image=None
-            label=None
-            imgMean = None
-            imgStd = None
-            print('ImagesDataset.__getitem__ idx {} returned result=None.'.format(idx))
+            print('ImagesDataset.__getitem__ failed idx {} image {} label {} returned result=None.'.format(idx,self.store.images[idx], self.store.images[idx], self.store.labels[idx]))
+            return None
         return image, label, imgMean, imgStd
 
-def collate_fn(batch):
-    batch = list(filter(lambda x: x is not None, batch))
+# Handle corrupt images:
+# https://github.com/pytorch/pytorch/issues/1137
+# https://stackoverflow.com/questions/57815001/pytorch-collate-fn-reject-sample-and-yield-another/67583699#67583699
+def collate_fn_replace_corrupted(batch, dataset):
+    original_batch_len = len(batch)
+    batch = list(filter(lambda x: x is not None, batch)) # Filter out bad samples
+    filtered_batch_len = len(batch)
+    diff = original_batch_len - filtered_batch_len
+    if diff > 0:                
+       # Replace corrupted examples with another examples randomly
+        batch.extend([dataset[random.randint(0, len(dataset))] for _ in range(diff)])
+        # Recursive call to replace the replacements if they are corrupted
+        return collate_fn_replace_corrupted(batch, dataset)
+
+    # Finally, when the whole batch is fine, return it
     return torch.utils.data.dataloader.default_collate(batch)
 
 default_loaders = [{'set':'train', 'split':0.8, 'enable_transform':True},
@@ -258,7 +274,7 @@ def CreateImageLoaders(s3, bucket, dataset_dfn, class_dict,
             loader['length'] = loader['batches']*batch_size
             sampler = SubsetRandomSampler(indices[startIndex:split])
             startIndex = split
-
+            collate_fn = functools.partial(collate_fn_replace_corrupted, dataset=dataset)
             loader['dataloader'] = torch.utils.data.DataLoader(dataset=dataset, 
                                                       batch_size=batch_size,
                                                       sampler=sampler,

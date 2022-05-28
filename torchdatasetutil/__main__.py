@@ -212,6 +212,9 @@ def main(args):
                 inputs, labels, mean, stdev = data
                 assert(inputs is not None)
                 assert(labels is not None)
+                assert(inputs.shape[0] == args.batch_size)
+                assert(inputs.shape[-1] == args.width)
+                assert(inputs.shape[-2] == args.height)
 
             if args.num_images > 0 and i >= args.num_images:
                 print ('test_iterator complete')
