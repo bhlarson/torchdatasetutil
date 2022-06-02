@@ -218,10 +218,10 @@ class CocoDataset(Dataset):
             image = result['img']
             label = result['ann']
 
-            if self.width is not None and self.height is not None:
+            if image is not None and label is not None:
+
                 image, label, imgMean, imgStd = self.imTransform.random_resize_crop_or_pad(image, label)
 
-            if image is not None and label is not None:
                 if len(image.shape) < 3:
                     image = np.expand_dims(image, axis=-1)
 
@@ -232,13 +232,13 @@ class CocoDataset(Dataset):
                     image = self.image_transform(image)
                 if self.label_transform:
                     label = self.label_transform(label)
+
+                assert(image.shape[-1] == self.width)
+                assert(image.shape[-2] == self.height)
             
         else:
-            image=None
-            label=None
-            imgMean = None
-            imgStd = None
             print('CocoDataset.__getitem__ idx {} returned result=None.'.format(idx))
+            return None
         return image, label, imgMean, imgStd
 
 # Handle corrupt images:

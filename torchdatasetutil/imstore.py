@@ -169,7 +169,7 @@ class ImagesDataset(Dataset):
 
         self.store = ImagesStore(s3, bucket, dataset_desc, class_dictionary, numTries)
 
-        self.imTransform = ImTransform(height=height, width=width, 
+        self.imTransform = ImTransform(height=self.height, width=self.width, 
                                      normalize=normalize, 
                                      enable_transform=enable_transform, 
                                      flipX=flipX, flipY=flipY, 
@@ -185,20 +185,23 @@ class ImagesDataset(Dataset):
             image = result['img']
             label = result['ann']
 
-            if self.width is not None and self.height is not None:
+            if image is not None and label is not None:
+
                 image, label, imgMean, imgStd = self.imTransform.random_resize_crop_or_pad(image, label)
 
-            if image is not None and label is not None:
-                if len(image.shape) < 3:
-                    image = np.expand_dims(image, axis=-1)
+                if len(image.shape) < 3:  
+                    image = np.expand_dims(image, axis=-1) # Add a channel dimension
 
-                image = torch.from_numpy(image).permute(2, 0, 1)
+                image = torch.from_numpy(image).permute(2, 0, 1) # Convert from [channel, width, hight] to [channel, height, width]
                 label = torch.from_numpy(label)
 
                 if self.image_transform:
                     image = self.image_transform(image)
                 if self.label_transform:
                     label = self.label_transform(label)
+
+                assert(image.shape[-1] == self.width)
+                assert(image.shape[-2] == self.height)
             
         else:
             print('ImagesDataset.__getitem__ failed idx {} image {} label {} returned result=None.'.format(idx,self.store.images[idx], self.store.images[idx], self.store.labels[idx]))
