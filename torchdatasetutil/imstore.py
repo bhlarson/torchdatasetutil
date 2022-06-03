@@ -203,8 +203,8 @@ class ImagesDataset(Dataset):
                 assert(image.shape[-1] == self.width)
                 assert(image.shape[-2] == self.height)
             
-        else:
-            print('ImagesDataset.__getitem__ failed idx {} image {} label {} returned result=None.'.format(idx,self.store.images[idx], self.store.images[idx], self.store.labels[idx]))
+        else:           
+            print('ImagesDataset.__getitem__ failed idx {} image {} label {} returned result=None.'.format(idx,self.store.images[idx]), self.store.labels[idx])
             return None
         return image, label, imgMean, imgStd
 
