@@ -204,7 +204,7 @@ class ImagesDataset(Dataset):
                 assert(image.shape[-2] == self.height)
             
         else:           
-            print('ImagesDataset.__getitem__ failed idx {} image {} label {} returned result=None.'.format(idx,self.store.images[idx]), self.store.labels[idx])
+            print('ImagesDataset.__getitem__ failed idx {} return result=None.'.format(idx))
             return None
         return image, label, imgMean, imgStd
 
