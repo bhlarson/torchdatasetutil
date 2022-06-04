@@ -218,6 +218,7 @@ def collate_fn_replace_corrupted(batch, dataset):
     diff = original_batch_len - filtered_batch_len
     if diff > 0:                
        # Replace corrupted examples with another examples randomly
+       print('imsgtore collate_fn_replace_corrupted diff = {}'.format(diff))
         batch.extend([dataset[random.randint(0, len(dataset))] for _ in range(diff)])
         # Recursive call to replace the replacements if they are corrupted
         return collate_fn_replace_corrupted(batch, dataset)
