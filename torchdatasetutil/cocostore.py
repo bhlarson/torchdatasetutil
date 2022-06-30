@@ -157,8 +157,11 @@ class CocoStore(ImUtil):
             img = self.DecodeImage(self.bucket, imgFile)
             ann_entry = self.imgToAnns[img_entry['id']]
             ann = self.drawann(img_entry, ann_entry)
-            classes = self.classes(ann_entry)
-            result = {'img':img, 'ann':ann, 'classes':classes}
+            if img is not None and ann is not None:
+                classes = self.classes(ann_entry)
+                result = {'img':img, 'ann':ann, 'classes':classes}
+            else:
+                result = None
 
             return result
         else:
@@ -250,7 +253,8 @@ def collate_fn_replace_corrupted(batch, dataset):
     filtered_batch_len = len(batch)
     diff = original_batch_len - filtered_batch_len
     if diff > 0:                
-       # Replace corrupted examples with another examples randomly
+        # Replace corrupted examples with another examples randomly
+        print('imsgtore collate_fn_replace_corrupted diff = {}'.format(diff))
         batch.extend([dataset[random.randint(0, len(dataset))] for _ in range(diff)])
         # Recursive call to replace the replacements if they are corrupted
         return collate_fn_replace_corrupted(batch, dataset)
