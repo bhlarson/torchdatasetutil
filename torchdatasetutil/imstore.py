@@ -211,7 +211,7 @@ class ImagesDataset(Dataset):
 # Handle corrupt images:
 # https://github.com/pytorch/pytorch/issues/1137
 # https://stackoverflow.com/questions/57815001/pytorch-collate-fn-reject-sample-and-yield-another/67583699#67583699
-def collate_fn_replace_corrupted(batch, dataset):
+def collate_fn_replace_corrupted(batch, dataset, batch_size=batch_size):
     original_batch_len = len(batch)
     batch = list(filter(lambda x: x is not None, batch)) # Filter out bad samples
     filtered_batch_len = len(batch)
@@ -277,7 +277,7 @@ def CreateImageLoaders(s3, bucket, dataset_dfn, class_dict,
             loader['length'] = loader['batches']*batch_size
             sampler = SubsetRandomSampler(indices[startIndex:split])
             startIndex = split
-            collate_fn = functools.partial(collate_fn_replace_corrupted, dataset=dataset)
+            collate_fn = functools.partial(collate_fn_replace_corrupted, dataset=dataset, batch_size=batch_size)
             loader['dataloader'] = torch.utils.data.DataLoader(dataset=dataset, 
                                                       batch_size=batch_size,
                                                       sampler=sampler,
