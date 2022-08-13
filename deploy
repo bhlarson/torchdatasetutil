@@ -12,7 +12,7 @@ import time
 from datetime import datetime
 from zipfile import ZipFile
 
-from pymlutil.jsonutil import ReadDict, WriteDict
+from pymlutil.jsonutil import cmd, ReadDict, WriteDict
 from torchdatasetutil.version import VersionString
 
 def parse_arguments():
@@ -31,14 +31,6 @@ def parse_arguments():
 
     args = parser.parse_args()
     return args
-
-def cmd(command, check=True):
-    print('$ '+command)
-    initial = datetime.now()
-    result = subprocess.run(command, shell=True, capture_output=True, check=check)
-    dt = (datetime.now()-initial).total_seconds()
-    print('Complete {}s: {}={}'.format(dt, result, command))
-    return result.returncode, result.stderr, result.stdout
 
 def Archive(args, config):
     result = 0
@@ -109,7 +101,7 @@ def main(args):
         cmd(cmdstr)
 
         cmdstr = 'python3 -c "import sys; from {}.version import __version__; sys.exit(__version__)"'.format(config['name'])
-        _, loaded_version, _ = cmd(cmdstr, check=False)
+        _, loaded_version, _ = cmd(cmdstr, check=False, capture_output=True)
         loaded_str = loaded_version.decode("utf-8").replace("\n", "")
         if loaded_str==version_str:
             is_new_version_loaded = True

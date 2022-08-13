@@ -211,17 +211,17 @@ class ImagesDataset(Dataset):
 # Handle corrupt images:
 # https://github.com/pytorch/pytorch/issues/1137
 # https://stackoverflow.com/questions/57815001/pytorch-collate-fn-reject-sample-and-yield-another/67583699#67583699
-def collate_fn_replace_corrupted(batch, dataset, batch_size=batch_size):
+def collate_fn_replace_corrupted(batch, dataset, batch_size):
     original_batch_len = len(batch)
     batch = list(filter(lambda x: x is not None, batch)) # Filter out bad samples
     filtered_batch_len = len(batch)
     diff = original_batch_len - filtered_batch_len
-    if diff > 0:                
+    if filtered_batch_len < batch_size:                
         # Replace corrupted examples with another examples randomly
         print('imsgtore collate_fn_replace_corrupted diff = {}'.format(diff))
         batch.extend([dataset[random.randint(0, len(dataset))] for _ in range(diff)])
         # Recursive call to replace the replacements if they are corrupted
-        return collate_fn_replace_corrupted(batch, dataset)
+        return collate_fn_replace_corrupted(batch, dataset, batch_size)
 
     # Finally, when the whole batch is fine, return it
     return torch.utils.data.dataloader.default_collate(batch)
