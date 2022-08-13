@@ -90,8 +90,8 @@ def main(args):
     cmdstr = "python3 setup.py sdist bdist_wheel"
     cmd(cmdstr)
 
-    pipy_creds = next(filter(lambda d: d.get('package') == args.package, creds['pipy']), None)
-    cmdstr = "twine upload dist/* -u {} -p {}".format(pipy_creds['username'], pipy_creds['password'])
+    pypi_creds = next(filter(lambda d: d.get('package') == args.package, creds['pypi']), None)
+    cmdstr = "twine upload dist/* -u {} -p {}".format(pypi_creds['username'], pypi_creds['password'])
     cmd(cmdstr)
 
     is_new_version_loaded = False
