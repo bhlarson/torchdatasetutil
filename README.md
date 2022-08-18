@@ -16,3 +16,14 @@ Two json or yaml dictionaries are loaded from the object storage to identify and
     - [imstore](https://github.com/bhlarson/torchdatasetutil/blob/main/torchdatasetutil/imstore.py)
 
 See [torchdatasetutil.ipynb](https://github.com/bhlarson/torchdatasetutil/blob/main/torchdatasetutil.ipynb) for library interface and usage
+
+
+# Imagenet:
+1. Data from kaggle:
+    # Data from https://www.kaggle.com/competitions/imagenet-object-localization-challenge/data?select=LOC_sample_submission.csv
+1. Extract and move validation folder data:
+    https://discuss.pytorch.org/t/issues-with-dataloader-for-imagenet-should-i-use-datasets-imagefolder-or-datasets-imagenet/115742/7
+1. Zip ILSVRC/Data/CLS-LOC/ to ILSVRC2012_devkit_t12.tar.gz
+    ```cmd
+    tar -czvf ILSVRC2012_devkit_t12.tar.gz ILSVRC/Data/CLS-LOC
+    ```
