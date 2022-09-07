@@ -43,10 +43,10 @@ def CreateImagesetLoaders(width=256, height=256, batch_size = 2, shuffle=True,
     # Load dataset
     if loaders is None:
         train_transform = transforms.Compose([
-            #transforms.RandomAffine(degrees=10, 
-            #    translate=(0.1, 0.1), 
-            #    scale=(0.9, 1.1), 
-            #    interpolation=transforms.InterpolationMode.BILINEAR),
+            transforms.RandomAffine(degrees=10, 
+               translate=(0.1, 0.1), 
+               scale=(0.9, 1.1), 
+               interpolation=transforms.InterpolationMode.BILINEAR),
             transforms.RandomCrop( (width, height), padding=None, pad_if_needed=True, fill=0, padding_mode='constant'),
             transforms.ToTensor(), 
             transforms.Normalize((0.0, 0.0, 0.0), (1.0, 1.0, 1.0)), # Imagenet mean and standard deviation
@@ -119,7 +119,7 @@ def parse_arguments():
     parser.add_argument('-debug_address', type=str, default='0.0.0.0', help='Debug port')
     parser.add_argument('-credentails', type=str, default='creds.yaml', help='Credentials file.')
     parser.add_argument('-num_images', type=int, default=0, help='Number of images to display')
-    parser.add_argument('-num_workers', type=int, default=4, help='Data loader workers')
+    parser.add_argument('-num_workers', type=int, default=25, help='Data loader workers')
     parser.add_argument('-batch_size', type=int, default=4, help='Dataset batch size')
     parser.add_argument('-i', action='store_true', help='True to test iterator')
     parser.add_argument('-test_iterator', type=bool, default=False, help='True to test iterator')
