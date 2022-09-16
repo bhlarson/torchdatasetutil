@@ -56,7 +56,7 @@ def parse_arguments():
     parser.add_argument('-id', action='store_true', help='True to test dataset')
     parser.add_argument('-image_dataset', action='store_true', help='True to test dataset')
 
-    parser.add_argument('-image_dataset_desc', type=str, default='annotations/lit/dataset.yaml', help='')
+    parser.add_argument('-image_dataset_desc', type=str, default='data/lit/dataset.yaml', help='')
     parser.add_argument('-image_class_dict', type=str, default='model/crisplit/lit.json', help='')
 
     parser.add_argument('-test_path', type=str, default='./datasets_test/', help='Test path ending in a forward slash')

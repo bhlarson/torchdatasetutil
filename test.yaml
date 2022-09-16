@@ -13,7 +13,7 @@ coco:
 
 images:
   credentials: 'creds.yaml'
-  dataset: 'annotations/lit/dataset.yaml'
+  dataset: 'data/lit/dataset.yaml'
   class_dict: 'model/crisplit/lit.json'
   test_images: 10
   num_workers: 1
