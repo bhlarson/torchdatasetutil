@@ -35,7 +35,7 @@ default_loaders = [{'set':'train', 'enable_transform':True},
 
 def CreateCifar10Loaders(dataset_path, batch_size = 2,  
                       num_workers=0, cuda = True, loaders = default_loaders, 
-                      rotate=3, scale_min=0.75, scale_max=1.25, offset=0.1):
+                      rotate=3, scale_min=0.75, scale_max=1.25, offset=0.1, augment_noise=0.0):
 
     Cifar10Classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
@@ -52,7 +52,7 @@ def CreateCifar10Loaders(dataset_path, batch_size = 2,
                     interpolation=transforms.InterpolationMode.BILINEAR),
                 transforms.ToTensor(),
                 transforms.Normalize((0.0, 0.0, 0.0), (1.0, 1.0, 1.0)), # Imagenet mean and standard deviation
-                AddGaussianNoise(0., args.augment_noise)
+                AddGaussianNoise(0., augment_noise)
             ])
         else:
             transform = transforms.Compose([transforms.ToTensor(), 
@@ -77,9 +77,16 @@ def CreateCifar10Loaders(dataset_path, batch_size = 2,
 def main(args):
 
     if args.test_dataset:
-        loaders = CreateCifar10Loaders(args.dataset_path, batch_size = args.batch_size,  
-                        num_workers=args.num_workers, cuda = args.cuda, 
-                        rotate=args.augment_rotation, scale_min=args.augment_scale_min, scale_max=args.augment_scale_max, offset=args.augment_translate_x)
+        loaders = CreateCifar10Loaders(args.dataset_path, 
+                        batch_size = args.batch_size,  
+                        num_workers=args.num_workers, 
+                        cuda = args.cuda, 
+                        rotate=args.augment_rotation, 
+                        scale_min=args.augment_scale_min, 
+                        scale_max=args.augment_scale_max, 
+                        offset=args.augment_translate_x,
+                        augment_noise = args.augment_noise
+                        )
 
 
         for loader in tqdm(loaders, desc="Loader"):
