@@ -4,6 +4,7 @@
 
 import json
 import os
+import sys
 from collections import namedtuple
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
@@ -23,6 +24,8 @@ from pymlutil.s3 import s3store, Connect
 from pymlutil.jsonutil import ReadDict
 from pymlutil.imutil import ImUtil, ImTransform
 
+sys.path.insert(0, os.path.abspath('')) # Test files from current path rather than installed module
+from torchdatasetutil.getcityscapes import getcityscapes
 
 class CityscapesDataset(VisionDataset):
     """`Cityscapes <http://www.cityscapes-dataset.com/>`_ Dataset.
@@ -295,13 +298,11 @@ def CreateCityscapesLoaders(s3, s3def, src, dest, class_dictionary, bucket = Non
     # if cuda:
     #     pin_memory = True
 
-    class_dict = s3.GetDict(bucket,class_dictionary)
-
     # Load dataset
     if loaders is None:
 
-        default_loaders = [{'set':'train', 'dataset': dest, 'enable_transform':True, 'mode':'fine', 'target_type':['semantic'], 'class_dictionary':class_dict } ,
-                        {'set':'val', 'dataset': dest, 'enable_transform':False, 'mode':'fine', 'target_type':['semantic'], 'class_dictionary':class_dict}]
+        default_loaders = [{'set':'train', 'dataset': dest, 'enable_transform':True, 'mode':'fine', 'target_type':['semantic'], 'class_dictionary':class_dictionary } ,
+                        {'set':'val', 'dataset': dest, 'enable_transform':False, 'mode':'fine', 'target_type':['semantic'], 'class_dictionary':class_dictionary}]
 
         loaders = default_loaders
 

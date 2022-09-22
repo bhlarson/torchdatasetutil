@@ -37,7 +37,7 @@ class Test(unittest.TestCase):
         loaders = CreateCityscapesLoaders(s3, s3def, 
                         src = parameters['cityscapes']['obj_src'],
                         dest = parameters['cityscapes']['destination'],
-                        class_dictionary = parameters['cityscapes']['class_dict'],
+                        class_dictionary =class_dictionary,
                         bucket = s3def['sets']['dataset']['bucket'], 
                         width=parameters['cityscapes']['width'], 
                         height=parameters['cityscapes']['height'], 
