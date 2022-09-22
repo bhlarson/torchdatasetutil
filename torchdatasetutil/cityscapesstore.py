@@ -247,6 +247,12 @@ class CityscapesDataset(VisionDataset):
             mean = None
             std = None
 
+        image = torch.from_numpy(image).permute(2, 0, 1)
+        target = torch.from_numpy(target)
+
+        assert(image.shape[-1] == self.transforms.width)
+        assert(image.shape[-2] == self.transforms.height)
+
         return image, target, mean, std
 
     def __len__(self) -> int:

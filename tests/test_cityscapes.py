@@ -53,14 +53,13 @@ class Test(unittest.TestCase):
                                 total=loader['batches']):
                 inputs, labels, mean, stdev = data
                 assert(inputs.size(0)==parameters['cityscapes']['batch_size'])
-                assert(inputs.size(-2)==parameters['cityscapes']['width'])
-                assert(inputs.size(-3)==parameters['cityscapes']['height'])
+                assert(inputs.size(-1)==parameters['cityscapes']['width'])
+                assert(inputs.size(-2)==parameters['cityscapes']['height'])
                 assert(labels.size(0)==parameters['cityscapes']['batch_size'])
-                assert(labels.size(-2)==parameters['cityscapes']['height'])
                 assert(labels.size(-1)==parameters['cityscapes']['width'])
+                assert(labels.size(-2)==parameters['cityscapes']['height'])
 
-                #images = inputs.cpu().permute(0, 3, 1, 2).numpy()
-                images = inputs.cpu().numpy()
+                images = inputs.cpu().permute(0, 2, 3, 1).numpy()
                 labels = np.around(labels.cpu().numpy()).astype('uint8')
                 mean = mean.cpu().numpy()
                 stdev = stdev.cpu().numpy()

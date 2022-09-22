@@ -427,7 +427,7 @@ def parse_arguments():
     parser.add_argument('-i', action='store_true', help='True to test iterator')
     parser.add_argument('-test_iterator', type=bool, default=False, help='True to test iterator')
     parser.add_argument('-ds', action='store_true', help='True to test dataset')
-    parser.add_argument('-test_dataset', action='store_true', help='True to test dataset')
+    parser.add_argument('-test_dataset', type=bool, default=True, help='True to test dataset')
     parser.add_argument('-view_iterator', action='store_true', help='True to test iterator')
     parser.add_argument('-view_dataset', action='store_true', help='True to test dataset')
     parser.add_argument('-test_path', type=str, default='./datasets_test/', help='Test path ending in a forward slash')
