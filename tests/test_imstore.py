@@ -74,7 +74,7 @@ class Test(unittest.TestCase):
                 assert(labels.size(-1)==parameters['images']['width'])
                 assert(labels.size(-2)==parameters['images']['height'])
 
-                #images = inputs.cpu().permute(0, 2, 3, 1).numpy()
+                #images = inputs.cpu().permute(0, 3, 1, 2).numpy()
                 #labels = np.around(labels.cpu().numpy()).astype('uint8')
                 #mean = mean.cpu().numpy()
                 #stdev = stdev.cpu().numpy()

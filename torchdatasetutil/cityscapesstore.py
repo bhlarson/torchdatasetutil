@@ -7,7 +7,7 @@ import os
 from collections import namedtuple
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
-from PIL import Image
+import numpy as np
 import cv2
 
 import torch
@@ -119,6 +119,7 @@ class CityscapesDataset(VisionDataset):
     def __init__(
         self,
         root: str,
+        class_dictionary: dict,
         split: str = "train",
         mode: str = "fine",
         target_type: Union[List[str], str] = "instance",
@@ -133,6 +134,7 @@ class CityscapesDataset(VisionDataset):
         offset=0.1,
     ) -> None:
         super().__init__(root)
+        self.class_dictionary = class_dictionary
         self.mode = "gtFine" if mode == "fine" else "gtCoarse"
         self.images_dir = os.path.join(self.root, "leftImg8bit", split)
         self.targets_dir = os.path.join(self.root, self.mode, split)
@@ -195,6 +197,23 @@ class CityscapesDataset(VisionDataset):
                 self.images.append(os.path.join(img_dir, file_name))
                 self.targets.append(target_types)
 
+    def classes(self, anns):
+        class_vector = np.zeros(self.class_dictionary ['classes'], dtype=np.float32)
+
+        for ann in anns:
+            obj = self.catToObj[ann['category_id']]
+            if obj['trainId'] < self.class_dictionary ["classes"]:
+                class_vector[obj['trainId']] = 1.0
+
+        return class_vector
+
+    def ConvertLabels(self, ann):
+        trainAnn = np.zeros_like(ann)
+        for obj in self.class_dictionary ['objects']: # Load RGB colors as BGR
+            if not (obj['id'] == obj['trainId'] and obj['id'] == 0):
+                trainAnn[ann==obj['id']] = obj['trainId']
+        return trainAnn
+
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
         """
         Args:
@@ -211,6 +230,9 @@ class CityscapesDataset(VisionDataset):
                 target = self._load_json(self.targets[index][i])
             else:
                 target = cv2.imread(self.targets[index][i], self.anflags)
+
+            if t == "semantic":
+                target = self.ConvertLabels(target)
 
             targets.append(target)
 
@@ -246,7 +268,7 @@ class CityscapesDataset(VisionDataset):
         else:
             return f"{mode}_polygons.json"
 
-def CreateCityscapesLoaders(s3, s3def, src, dest, bucket = None, width=256, height=256, batch_size = 2, shuffle=True, 
+def CreateCityscapesLoaders(s3, s3def, src, dest, class_dictionary, bucket = None, width=256, height=256, batch_size = 2, shuffle=True, 
                       num_workers=0, cuda = True, timeout=0, loaders = None, 
                       image_transform=None, label_transform=None, 
                       normalize=True, 
@@ -270,15 +292,16 @@ def CreateCityscapesLoaders(s3, s3def, src, dest, bucket = None, width=256, heig
     dest = os.path.join(dest, '') #Ensure there is a trailing slash
 
     pin_memory = False
-    if cuda:
-        pin_memory = True
+    # if cuda:
+    #     pin_memory = True
 
+    class_dict = s3.GetDict(bucket,class_dictionary)
 
     # Load dataset
     if loaders is None:
 
-        default_loaders = [{'set':'train', 'dataset': dest, 'enable_transform':True, 'mode':'fine', 'target_type':['semantic'] } ,
-                        {'set':'val', 'dataset': dest, 'enable_transform':False, 'mode':'fine', 'target_type':['semantic']}]
+        default_loaders = [{'set':'train', 'dataset': dest, 'enable_transform':True, 'mode':'fine', 'target_type':['semantic'], 'class_dictionary':class_dict } ,
+                        {'set':'val', 'dataset': dest, 'enable_transform':False, 'mode':'fine', 'target_type':['semantic'], 'class_dictionary':class_dict}]
 
         loaders = default_loaders
 
@@ -286,7 +309,6 @@ def CreateCityscapesLoaders(s3, s3def, src, dest, bucket = None, width=256, heig
     allocated = 0.0
 
     for i, loader in enumerate(loaders):
-
         transform = ImTransform(height=height, width=width, 
                                 normalize=normalize, 
                                 enable_transform=loader['enable_transform'],
@@ -302,7 +324,8 @@ def CreateCityscapesLoaders(s3, s3def, src, dest, bucket = None, width=256, heig
                                 )
 
 
-        dataset = CityscapesDataset(root=loader['dataset'], 
+        dataset = CityscapesDataset(root=loader['dataset'],
+                                    class_dictionary=loader['class_dictionary'],
                                     split=loader['set'], 
                                     mode=loader['mode'], 
                                     target_type=loader['target_type'], 
@@ -319,8 +342,8 @@ def CreateCityscapesLoaders(s3, s3def, src, dest, bucket = None, width=256, heig
         loader['length'] = loader['batches']*batch_size
         loader['width']=width
         loader['height']=height
-        loader['in_channels']=3
-        loader['num_classes']=len(dataset.classes)
-        loader['classes']=dataset.classes
+        loader['in_channels']=loader['class_dictionary']['input_channels']
+        loader['num_classes']=loader['class_dictionary']['classes']
+        loader['classes']=loader['class_dictionary']['objects']
 
     return loaders

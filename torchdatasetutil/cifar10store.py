@@ -40,8 +40,8 @@ def CreateCifar10Loaders(dataset_path, batch_size = 2,
     Cifar10Classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
     pin_memory = False
-    if cuda:
-        pin_memory = True
+    # if cuda:
+    #     pin_memory = True
 
     for i, loader in enumerate(loaders):
         if loader['enable_transform']:

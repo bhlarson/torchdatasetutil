@@ -31,24 +31,27 @@ class Test(unittest.TestCase):
 
         s3, creds, s3def = Connect(parameters['images']['credentials'])
 
-        dataset_desc = s3.GetDict(s3def['sets']['dataset']['bucket'],parameters['images']['dataset'])
-        class_dictionary = s3.GetDict(s3def['sets']['dataset']['bucket'],parameters['images']['class_dict']) 
-        imUtil = ImUtil(dataset_desc, class_dictionary)
+        class_dictionary = s3.GetDict(s3def['sets']['dataset']['bucket'],parameters['cityscapes']['class_dict']) 
+        imUtil = ImUtil({}, class_dictionary)
 
         loaders = CreateCityscapesLoaders(s3, s3def, 
                         src = parameters['cityscapes']['obj_src'],
                         dest = parameters['cityscapes']['destination'],
+                        class_dictionary = parameters['cityscapes']['class_dict'],
                         bucket = s3def['sets']['dataset']['bucket'], 
                         width=parameters['cityscapes']['width'], 
                         height=parameters['cityscapes']['height'], 
                         batch_size = parameters['cityscapes']['batch_size'], 
                         num_workers=parameters['cityscapes']['num_workers'])
 
+        parameters['cityscapes']['test_path']=os.path.join(parameters['cityscapes']['test_path'], '') # Add trailing slash if not present
+        os.makedirs(parameters['cityscapes']['test_path'], exist_ok=True)
+
         for loader in tqdm(loaders, desc="CreateImageLoaders"):
             for i, data in tqdm(enumerate(loader['dataloader']), 
                                 desc="Batch Reads", 
                                 total=loader['batches']):
-                inputs, labels, mean, std = data
+                inputs, labels, mean, stdev = data
                 assert(inputs.size(0)==parameters['cityscapes']['batch_size'])
                 assert(inputs.size(-2)==parameters['cityscapes']['width'])
                 assert(inputs.size(-3)==parameters['cityscapes']['height'])
@@ -56,7 +59,22 @@ class Test(unittest.TestCase):
                 assert(labels.size(-2)==parameters['cityscapes']['height'])
                 assert(labels.size(-1)==parameters['cityscapes']['width'])
 
-                if 'test_images' in parameters['images'] and parameters['images']['test_images'] is not None and i >= parameters['images']['test_images']:
+                #images = inputs.cpu().permute(0, 3, 1, 2).numpy()
+                images = inputs.cpu().numpy()
+                labels = np.around(labels.cpu().numpy()).astype('uint8')
+                mean = mean.cpu().numpy()
+                stdev = stdev.cpu().numpy()
+
+                for j, image in enumerate(images):
+                   img = imUtil.MergeIman(images[j], labels[j], mean[j], stdev[j])
+                   write_path = '{}{}{:03d}{:03d}.png'.format(parameters['cityscapes']['test_path'], loader['set'], i,j)                   
+                   cv2.imwrite(write_path,img)
+
+                #    is_success, buffer = cv2.imencode(".png", img)
+                #    if not is_success:
+                #        raise ValueError('test_imstore test_CreateImageLoaders cv2.imencode failure batch {} image {}'.format(i, j))
+
+                if 'test_images' in parameters['cityscapes'] and parameters['cityscapes']['test_images'] is not None and i >= parameters['cityscapes']['test_images']:
                     break
 
 if __name__ == '__main__':

@@ -275,8 +275,8 @@ def CreateCocoLoaders(s3, bucket, class_dict,
                       random_seed = None, numTries=3):
 
     pin_memory = False
-    if cuda:
-        pin_memory = True
+    # if cuda:
+    #     pin_memory = True
 
     startIndex = 0
     allocated = 0.0

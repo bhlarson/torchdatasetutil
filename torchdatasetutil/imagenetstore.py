@@ -1045,8 +1045,8 @@ def CreateImagesetLoaders(s3, s3def, src, dest, bucket = None, width=256, height
     dest = os.path.join(dest, '') #Ensure there is a trailing slash
 
     pin_memory = False
-    if cuda:
-        pin_memory = True
+    # if cuda:
+    #     pin_memory = True
 
 
     # Load dataset
