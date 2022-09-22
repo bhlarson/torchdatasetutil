@@ -15,11 +15,11 @@ images:
   credentials: 'creds.yaml'
   dataset: 'data/lit/dataset.yaml'
   class_dict: 'model/crisplit/lit.json'
-  test_images: 1000
+  test_images: 10
   num_workers: 1
   batch_size: 4
-  height: 640
-  width: 480
+  height: 480 
+  width: 640
 
 cityscapes:
   credentials: creds.yaml
@@ -27,7 +27,7 @@ cityscapes:
   destination: /nvmestore/mlstore/mllib/data/cityscapes
   class_dict: model/cityscapes/cityscapes.json
   test_path: test/cityscapes
-  test_images: 4
+  test_images: 10
   num_workers: 0
   batch_size: 2
   height: 512
