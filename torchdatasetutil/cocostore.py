@@ -295,6 +295,7 @@ def CreateCocoLoaders(s3, bucket, class_dict,
         # Creating PT data samplers and loaders:
         loader['batches'] =int(dataset.__len__()/batch_size)
         loader['length'] = loader['batches']*batch_size
+        loader['dataset_dfn'] = {}
         collate_fn = functools.partial(collate_fn_replace_corrupted, dataset=dataset, batch_size=batch_size)
         loader['dataloader'] = torch.utils.data.DataLoader(dataset=dataset, 
                                             batch_size=batch_size,

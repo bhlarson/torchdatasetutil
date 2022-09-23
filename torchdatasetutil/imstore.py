@@ -274,6 +274,7 @@ def CreateImageLoaders(s3, bucket, dataset_dfn, class_dict,
             # Creating PT data samplers and loaders:
             loader['batches'] =int((split-startIndex)/batch_size)
             loader['length'] = loader['batches']*batch_size
+            loader['dataset_dfn'] = dataset_dfn
             sampler = SubsetRandomSampler(indices[startIndex:split])
             startIndex = split
             collate_fn = functools.partial(collate_fn_replace_corrupted, dataset=dataset, batch_size=batch_size)

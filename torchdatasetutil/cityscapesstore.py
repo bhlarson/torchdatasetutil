@@ -352,5 +352,6 @@ def CreateCityscapesLoaders(s3, s3def, src, dest, class_dictionary, bucket = Non
         loader['in_channels']=loader['class_dictionary']['input_channels']
         loader['num_classes']=loader['class_dictionary']['classes']
         loader['classes']=loader['class_dictionary']['objects']
+        loader['dataset_dfn'] = {}
 
     return loaders
