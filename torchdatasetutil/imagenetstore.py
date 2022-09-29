@@ -1067,7 +1067,7 @@ def CreateImagesetLoaders(s3, s3def, src, dest, bucket = None, width=256, height
         train_transform = transforms.Compose(transform_list)
 
         test_transform = transforms.Compose([
-            #transforms.RandomCrop( (width, height), padding=None, pad_if_needed=True, fill=0, padding_mode='constant'),
+            transforms.RandomCrop( (width, height), padding=None, pad_if_needed=True, fill=0, padding_mode='constant'),
             transforms.ToTensor(), 
             transforms.Normalize((0.0, 0.0, 0.0), (1.0, 1.0, 1.0)) # Imagenet mean and standard deviation
         ])
