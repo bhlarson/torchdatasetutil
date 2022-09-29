@@ -68,9 +68,7 @@ def CreateCifar10Loaders(dataset_path, batch_size = 2,
             transform_list.append(transforms.ToTensor())
             transform_list.append(transforms.Normalize((0.0, 0.0, 0.0), (1.0, 1.0, 1.0))) # Imagenet mean and standard deviation
 
-            transform = transforms.Compose([transforms.ToTensor(), 
-                    transforms.Normalize((0.0, 0.0, 0.0), (1.0, 1.0, 1.0)) # Imagenet mean and standard deviation
-                ])
+            transform = transforms.Compose(transform_list)
 
         dataset = torchvision.datasets.CIFAR10(root=dataset_path, train=loader['set']=='train', download=True, transform=transform)
         # Creating PT data samplers and loaders:
