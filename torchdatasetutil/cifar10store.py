@@ -35,7 +35,7 @@ default_loaders = [{'set':'train', 'enable_transform':True},
 
 def CreateCifar10Loaders(dataset_path, batch_size = 2,  
                       num_workers=0, cuda = True, loaders = default_loaders, 
-                      rotate=3, scale_min=0.75, scale_max=1.25, offset=0.1, augment_noise=0.0):
+                      rotate=3, scale_min=0.75, scale_max=1.25, offset=0.1, augment_noise=0.0, width=32, height=32):
 
     Cifar10Classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
@@ -45,24 +45,37 @@ def CreateCifar10Loaders(dataset_path, batch_size = 2,
 
     for i, loader in enumerate(loaders):
         if loader['enable_transform']:
-            transform = transforms.Compose([transforms.RandomHorizontalFlip(p=0.5),
-                transforms.RandomAffine(degrees=rotate,
+            transform_list = []
+
+            if width != 32 or height != 32:
+                transform_list.append(transforms.Resize(size=[height,height]))
+
+            transform_list.append(transforms.RandomHorizontalFlip(p=0.5))
+            transform_list.append(transforms.RandomAffine(degrees=rotate,
                     translate=(offset, offset), 
                     scale=(scale_min, scale_max), 
-                    interpolation=transforms.InterpolationMode.BILINEAR),
-                transforms.ToTensor(),
-                transforms.Normalize((0.0, 0.0, 0.0), (1.0, 1.0, 1.0)), # Imagenet mean and standard deviation
-                AddGaussianNoise(0., augment_noise)
-            ])
+                    interpolation=transforms.InterpolationMode.BILINEAR))
+            transform_list.append(transforms.ToTensor())
+            transform_list.append(transforms.Normalize((0.0, 0.0, 0.0), (1.0, 1.0, 1.0))) # Imagenet mean and standard deviation
+            if augment_noise > 0.0:
+                transform_list.append(AddGaussianNoise(0., augment_noise))
+
+            transform = transforms.Compose(transform_list)
         else:
+            transform_list = []
+            if width != 32 or height != 32:
+                transform_list.append(transforms.Resize(size=[height,height]))
+            transform_list.append(transforms.ToTensor())
+            transform_list.append(transforms.Normalize((0.0, 0.0, 0.0), (1.0, 1.0, 1.0))) # Imagenet mean and standard deviation
+
             transform = transforms.Compose([transforms.ToTensor(), 
                     transforms.Normalize((0.0, 0.0, 0.0), (1.0, 1.0, 1.0)) # Imagenet mean and standard deviation
                 ])
 
         dataset = torchvision.datasets.CIFAR10(root=dataset_path, train=loader['set']=='train', download=True, transform=transform)
         # Creating PT data samplers and loaders:
-        loader['width']=32
-        loader['height']=32
+        loader['width']=width
+        loader['height']=height
         loader['in_channels']=3
         loader['num_classes']=len(Cifar10Classes)
         loader['classes']=list(Cifar10Classes)
@@ -97,7 +110,7 @@ def main(args):
                 assert(sample is not None)
                 assert(sample.shape[0] == args.batch_size)
                 assert(sample.shape[2] == loader['height'])
-                assert(sample.shape[3] == loader['height'])
+                assert(sample.shape[3] == loader['width'])
                 assert(target is not None)
 
             if args.num_images is not None and args.num_images > 0 and i >= args.num_images:

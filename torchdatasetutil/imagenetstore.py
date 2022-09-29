@@ -1034,7 +1034,8 @@ def CreateImagesetLoaders(s3, s3def, src, dest, bucket = None, width=256, height
                       num_workers=0, cuda = True, timeout=0, loaders = None, 
                       image_transform=None, label_transform=None, 
                       normalize=True, flipX=True, flipY=False, 
-                      random_seed = None, numTries=3):
+                      random_seed = None, numTries=3,
+                      rotate=3, scale_min=0.75, scale_max=1.25, offset=0.1, augment_noise=0.0):
 
     if not bucket:
         bucket = s3def['sets']['dataset']['bucket']
@@ -1051,20 +1052,22 @@ def CreateImagesetLoaders(s3, s3def, src, dest, bucket = None, width=256, height
 
     # Load dataset
     if loaders is None:
-        train_transform = transforms.Compose([
-            transforms.RandomAffine(degrees=10, 
-               translate=(0.1, 0.1), 
-               scale=(0.9, 1.1), 
-               interpolation=transforms.InterpolationMode.BILINEAR),
-            transforms.RandomCrop( (width, height), padding=None, pad_if_needed=True, fill=0, padding_mode='constant'),
-            transforms.ToTensor(), 
-            transforms.Normalize((0.0, 0.0, 0.0), (1.0, 1.0, 1.0)), # Imagenet mean and standard deviation
-            transforms.RandomHorizontalFlip(p=0.5),
-            #AddGaussianNoise(0., 0.05)
-        ])
+        transform_list = []
+        transform_list.append(transforms.RandomHorizontalFlip(p=0.5))
+        transform_list.append(transforms.RandomAffine(degrees=rotate,
+                translate=(offset, offset), 
+                scale=(scale_min, scale_max), 
+                interpolation=transforms.InterpolationMode.BILINEAR)) 
+        transform_list.appendtransforms.RandomCrop( (width, height), padding=None, pad_if_needed=True, fill=0, padding_mode='constant'))
+        transform_list.append(transforms.ToTensor())
+        transform_list.append(transforms.Normalize((0.0, 0.0, 0.0), (1.0, 1.0, 1.0))) # Imagenet mean and standard deviation
+        if augment_noise > 0.0:
+            transform_list.append(AddGaussianNoise(0., augment_noise))
+
+        train_transform = transforms.Compose(transform_list)
 
         test_transform = transforms.Compose([
-            transforms.RandomCrop( (width, height), padding=None, pad_if_needed=True, fill=0, padding_mode='constant'),
+            #transforms.RandomCrop( (width, height), padding=None, pad_if_needed=True, fill=0, padding_mode='constant'),
             transforms.ToTensor(), 
             transforms.Normalize((0.0, 0.0, 0.0), (1.0, 1.0, 1.0)) # Imagenet mean and standard deviation
         ])
