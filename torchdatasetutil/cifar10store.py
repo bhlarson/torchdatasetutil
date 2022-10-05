@@ -24,7 +24,8 @@ class AddGaussianNoise(object):
         self.mean = mean
         
     def __call__(self, tensor):
-        return tensor + torch.randn(tensor.size()) * self.std + self.mean
+        rand_std = random.uniform(0, self.std)
+        return tensor + torch.randn(tensor.size()) * rand_std + self.mean
     
     def __repr__(self):
         return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean, self.std)
@@ -144,7 +145,7 @@ def parse_arguments():
     parser.add_argument('-credentails', type=str, default='creds.yaml', help='Credentials file.')
     parser.add_argument('-dataset_path', type=str, default='./dataset', help='Local dataset path')
     parser.add_argument('-num_images', type=int, default=10, help='Number of images to display')
-    parser.add_argument('-num_workers', type=int, default=25, help='Data loader workers')
+    parser.add_argument('-num_workers', type=int, default=0, help='Data loader workers')
     parser.add_argument('-batch_size', type=int, default=4, help='Dataset batch size')
     parser.add_argument('-i', action='store_true', help='True to test iterator')
     parser.add_argument('-test_iterator', type=bool, default=False, help='True to test iterator')
