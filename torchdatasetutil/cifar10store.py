@@ -87,6 +87,8 @@ def CreateCifar10Loaders(dataset_path, batch_size = 2,
 
 def main(args):
 
+    parameters = ReadDict(args.test_config)
+
     if args.test_dataset:
         loaders = CreateCifar10Loaders(args.dataset_path, 
                         batch_size = args.batch_size,  
@@ -99,6 +101,8 @@ def main(args):
                         augment_noise = args.augment_noise
                         )
 
+        parameters['cifar10']['test_path']=os.path.join(parameters['cifar10']['test_path'], '') # Add trailing slash if not present
+        os.makedirs(parameters['cifar10']['test_path'], exist_ok=True)
 
         for loader in tqdm(loaders, desc="Loader"):
             for i, data in tqdm(enumerate(loader['dataloader']), 
@@ -111,9 +115,20 @@ def main(args):
                 assert(sample.shape[3] == loader['width'])
                 assert(target is not None)
 
-            if args.num_images is not None and args.num_images > 0 and i >= args.num_images:
-                print ('test_iterator complete')
-                break
+                sample =  sample.permute(0, 2, 3, 1) # Change to batch, height, width, channel for rendering
+                sample_max = sample.max()
+                sample_min = sample.min()
+                if sample_max > sample_min:
+                    for j, image in enumerate(sample):
+                        image = 255*(image - sample_min)/(sample_max-sample_min) # Convert to RGB color rane
+                        image = image.cpu().numpy().astype(np.uint8)
+                        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+                        write_path = '{}{}{:03d}{:03d}.png'.format(parameters['cifar10']['test_path'], loader['set'], i,j)            
+                        cv2.imwrite(write_path,image)
+
+                if args.num_images is not None and args.num_images > 0 and i >= args.num_images:
+                    print ('test_iterator complete')
+                    break
 
     print('Test complete')
 
@@ -128,7 +143,7 @@ def parse_arguments():
     parser.add_argument('-debug_address', type=str, default='0.0.0.0', help='Debug port')
     parser.add_argument('-credentails', type=str, default='creds.yaml', help='Credentials file.')
     parser.add_argument('-dataset_path', type=str, default='./dataset', help='Local dataset path')
-    parser.add_argument('-num_images', type=int, default=0, help='Number of images to display')
+    parser.add_argument('-num_images', type=int, default=10, help='Number of images to display')
     parser.add_argument('-num_workers', type=int, default=25, help='Data loader workers')
     parser.add_argument('-batch_size', type=int, default=4, help='Dataset batch size')
     parser.add_argument('-i', action='store_true', help='True to test iterator')
@@ -144,8 +159,8 @@ def parse_arguments():
     parser.add_argument('-augment_rotation', type=float, default=0.0, help='Input augmentation rotation degrees')
     parser.add_argument('-augment_scale_min', type=float, default=1.00, help='Input augmentation scale')
     parser.add_argument('-augment_scale_max', type=float, default=1.00, help='Input augmentation scale')
-    parser.add_argument('-augment_translate_x', type=float, default=0.125, help='Input augmentation translation')
-    parser.add_argument('-augment_translate_y', type=float, default=0.125, help='Input augmentation translation')
+    parser.add_argument('-augment_translate_x', type=float, default=0.0, help='Input augmentation translation')
+    parser.add_argument('-augment_translate_y', type=float, default=0.0, help='Input augmentation translation')
     parser.add_argument('-augment_noise', type=float, default=0.1, help='Augment image noise')
 
     args = parser.parse_args()

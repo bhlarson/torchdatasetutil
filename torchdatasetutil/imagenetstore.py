@@ -1035,7 +1035,7 @@ def CreateImagesetLoaders(s3, s3def, src, dest, bucket = None, width=256, height
                       image_transform=None, label_transform=None, 
                       normalize=True, flipX=True, flipY=False, 
                       random_seed = None, numTries=3,
-                      rotate=3, scale_min=0.75, scale_max=1.25, offset=0.1, augment_noise=0.0):
+                      rotate=3, scale_min=0.75, scale_max=1.25, offset=0.1, augment_noise=1.0):
 
     if not bucket:
         bucket = s3def['sets']['dataset']['bucket']
@@ -1106,6 +1106,8 @@ def main(args):
 
     s3, creds, s3def = Connect(args.credentails)
 
+    parameters = ReadDict(args.test_config)
+
     if args.test_dataset:
         loaders = CreateImagesetLoaders(s3, s3def, 
                                     args.obj_src, 
@@ -1114,7 +1116,17 @@ def main(args):
                                     height=args.height, 
                                     batch_size=args.batch_size, 
                                     num_workers=args.num_workers,
-                                    cuda = args.cuda)
+                                    cuda = args.cuda,
+                                    flipX=parameters['imagenet']['flipX'], 
+                                    flipY=parameters['imagenet']['flipY'], 
+                                    rotate=parameters['imagenet']['rotate'], 
+                                    scale_min=parameters['imagenet']['scale_min'], 
+                                    scale_max=parameters['imagenet']['scale_max'], 
+                                    offset=parameters['imagenet']['offset'], 
+                                    augment_noise=parameters['imagenet']['augment_noise'])
+
+        parameters['imagenet']['test_path']=os.path.join(parameters['imagenet']['test_path'], '') # Add trailing slash if not present
+        os.makedirs(parameters['imagenet']['test_path'], exist_ok=True)
 
         for loader in tqdm(loaders, desc="Loader"):
             for i, data in tqdm(enumerate(loader['dataloader']), 
@@ -1126,6 +1138,16 @@ def main(args):
                 assert(sample.shape[2] == args.height)
                 assert(sample.shape[3] == args.width)
                 assert(target is not None)
+
+                sample =  sample.permute(0, 2, 3, 1) # Change to batch, height, width, channel for rendering
+                sample_max = sample.max()
+                sample_min = sample.min()
+                if sample_max > sample_min:
+                    for j, image in enumerate(sample):
+                        image = 255*(image - sample_min)/(sample_max-sample_min) # Convert to RGB color rane
+                        image = image.cpu().numpy().astype(np.uint8)
+                        write_path = '{}{}{:03d}{:03d}.png'.format(parameters['imagenet']['test_path'], loader['set'], i,j)            
+                        cv2.imwrite(write_path,image)
 
             if args.num_images is not None and args.num_images > 0 and i >= args.num_images:
                 print ('test_iterator complete')
@@ -1144,7 +1166,7 @@ def parse_arguments():
     parser.add_argument('-debug_address', type=str, default='0.0.0.0', help='Debug port')
     parser.add_argument('-credentails', type=str, default='creds.yaml', help='Credentials file.')
     parser.add_argument('-num_images', type=int, default=0, help='Number of images to display')
-    parser.add_argument('-num_workers', type=int, default=25, help='Data loader workers')
+    parser.add_argument('-num_workers', type=int, default=0, help='Data loader workers')
     parser.add_argument('-batch_size', type=int, default=4, help='Dataset batch size')
     parser.add_argument('-i', action='store_true', help='True to test iterator')
     parser.add_argument('-test_iterator', type=bool, default=False, help='True to test iterator')

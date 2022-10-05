@@ -32,3 +32,25 @@ cityscapes:
   batch_size: 2
   height: 512
   width: 768
+
+imagenet:
+  credentials: creds.yaml
+  obj_src: data/cityscapes
+  destination: /nvmestore/mlstore/mllib/data/imagenet
+  test_path: test/imagenenet
+  test_images: 10
+  num_workers: 0
+  batch_size: 2
+  height: 512
+  width: 768
+  flipX: True 
+  flipY: False
+  rotate: 3
+  scale_min: 0.75
+  scale_max: 1.25 
+  offset: 0.1
+  augment_noise: 0.1
+
+cifar10:
+  test_path: test/cifar10
+  test_images: 10
