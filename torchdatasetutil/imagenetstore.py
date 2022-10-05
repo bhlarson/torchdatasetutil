@@ -1055,10 +1055,11 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, width=256, height
     if loaders is None:
         transform_list = []
         transform_list.append(transforms.RandomHorizontalFlip(p=0.5))
-        transform_list.append(transforms.RandomAffine(degrees=rotate,
-                translate=(offset, offset), 
-                scale=(scale_min, scale_max), 
-                interpolation=transforms.InterpolationMode.BILINEAR)) 
+        if rotate > 0 or offset > 0 or scale_min != 1.0 or scale_max != 1.0:
+            transform_list.append(transforms.RandomAffine(degrees=rotate,
+                    translate=(offset, offset), 
+                    scale=(scale_min, scale_max), 
+                    interpolation=transforms.InterpolationMode.BILINEAR))
         transform_list.append(transforms.RandomCrop( (width, height), padding=None, pad_if_needed=True, fill=0, padding_mode='constant'))
         transform_list.append(transforms.ToTensor())
         transform_list.append(transforms.Normalize((0.0, 0.0, 0.0), (1.0, 1.0, 1.0))) # Imagenet mean and standard deviation
