@@ -1030,7 +1030,7 @@ class AddGaussianNoise(object):
         return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean, self.std)
 
 
-def CreateImagesetLoaders(s3, s3def, src, dest, bucket = None, width=256, height=256, batch_size = 2, shuffle=True, 
+def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, width=256, height=256, batch_size = 2, shuffle=True, 
                       num_workers=0, cuda = True, timeout=0, loaders = None, 
                       image_transform=None, label_transform=None, 
                       normalize=True, flipX=True, flipY=False, 
@@ -1109,7 +1109,7 @@ def main(args):
     parameters = ReadDict(args.test_config)
 
     if args.test_dataset:
-        loaders = CreateImagesetLoaders(s3, s3def, 
+        loaders = CreateImagenetLoaders(s3, s3def, 
                                     args.obj_src, 
                                     args.destination, 
                                     width=args.width, 
