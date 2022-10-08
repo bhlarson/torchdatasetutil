@@ -31,8 +31,8 @@ class AddGaussianNoise(object):
         return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean, self.std)
 
 
-default_loaders = [{'set':'train', 'enable_transform':True},
-                   {'set':'test', 'enable_transform':False}]
+default_loaders = [{'set':'train', 'enable_transform':True, 'shuffle': True},
+                   {'set':'test', 'enable_transform':False, 'shuffle': False}]
 
 def CreateCifar10Loaders(dataset_path, batch_size = 2,  
                       num_workers=0, cuda = True, loaders = default_loaders, 
@@ -83,6 +83,7 @@ def CreateCifar10Loaders(dataset_path, batch_size = 2,
         loader['length'] = loader['batches']*batch_size
         loader['dataloader'] = torch.utils.data.DataLoader(dataset=dataset, 
                                                     batch_size=batch_size,
+                                                    shuffle=loader['shuffle'],
                                                     num_workers=num_workers, 
                                                     pin_memory=pin_memory)
     return loaders
