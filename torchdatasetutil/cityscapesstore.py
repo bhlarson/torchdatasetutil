@@ -15,7 +15,7 @@ import torch
 from tqdm import tqdm
 from torch.utils.data import Dataset
 from torchvision import datasets, transforms
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, WeightedRandomSampler
 from torchvision import datasets, transforms
 from torchvision.datasets.utils import extract_archive, iterable_to_str, verify_str_arg
 from torchvision.datasets.vision import VisionDataset
@@ -145,7 +145,7 @@ class CityscapesDataset(VisionDataset):
         self.split = split
         self.images = []
         self.targets = []
-        self.imflags = imflags 
+        self.imflags = imflags
         self.anflags = anflags
         self.transforms = transforms
 
@@ -225,6 +225,7 @@ class CityscapesDataset(VisionDataset):
             tuple: (image, target) where target is a tuple of all target types if target_type is a list with more
             than one item. Otherwise target is a json object if target_type="polygon", else the image segmentation.
         """
+
         image = cv2.imread(self.images[index], self.imflags)
 
         targets: Any = []
@@ -290,7 +291,8 @@ def CreateCityscapesLoaders(s3, s3def, src, dest, class_dictionary, bucket = Non
                       offset=0.1,
                       astype='float32',
                       borderType=cv2.BORDER_CONSTANT,
-                      borderValue=0):
+                      borderValue=0,
+                      train_sampler_weights=None):
 
     if not bucket:
         bucket = s3def['sets']['dataset']['bucket']
@@ -338,11 +340,19 @@ def CreateCityscapesLoaders(s3, s3def, src, dest, class_dictionary, bucket = Non
                                     target_type=loader['target_type'], 
                                     transforms=transform
                                    )
+        
+        if train_sampler_weights is not None and loader['set'] == 'train':
+            sampler=WeightedRandomSampler(weights=train_sampler_weights, num_samples=len(train_sampler_weights), replacement=True)
+            shuffle=False
+        else:
+            sampler=None
+
         loader['dataloader'] = torch.utils.data.DataLoader(dataset=dataset,
                                                 batch_size=batch_size,
                                                 shuffle=shuffle,
                                                 num_workers=num_workers,
-                                                pin_memory=pin_memory)
+                                                pin_memory=pin_memory,
+                                                sampler=sampler)
 
         # Creating PT data samplers and loaders:
         loader['batches'] =int(len(loader['dataloader'])/batch_size)

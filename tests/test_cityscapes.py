@@ -1,3 +1,4 @@
+from dataclasses import replace
 import sys
 import os
 from pycocotools import mask
@@ -10,7 +11,7 @@ import torch
 from tqdm import tqdm
 from torch.utils.data import Dataset
 from torchvision import datasets, transforms
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, WeightedRandomSampler
 
 from pymlutil.s3 import s3store, Connect
 from pymlutil.jsonutil import ReadDict
@@ -31,8 +32,20 @@ class Test(unittest.TestCase):
 
         s3, creds, s3def = Connect(parameters['images']['credentials'])
 
-        class_dictionary = s3.GetDict(s3def['sets']['dataset']['bucket'],parameters['cityscapes']['class_dict']) 
+        class_dictionary_path = parameters['cityscapes']['class_dict']
+        class_dictionary = s3.GetDict(s3def['sets']['dataset']['bucket'],class_dictionary_path) 
         imUtil = ImUtil({}, class_dictionary)
+
+
+        sampler =parameters['cityscapes']['sampler']
+        if sampler:
+            if 'sample_weights' in class_dictionary.keys():
+                train_sampler_weights = class_dictionary['sample_weights']
+            else:
+                raise KeyError('Sample weights are not initialized in class dictionary')
+        else:
+            train_sampler_weights=None
+
 
         loaders = CreateCityscapesLoaders(s3, s3def, 
                         src = parameters['cityscapes']['obj_src'],
@@ -42,10 +55,13 @@ class Test(unittest.TestCase):
                         width=parameters['cityscapes']['width'], 
                         height=parameters['cityscapes']['height'], 
                         batch_size = parameters['cityscapes']['batch_size'], 
-                        num_workers=parameters['cityscapes']['num_workers'])
+                        num_workers=parameters['cityscapes']['num_workers'],
+                        train_sampler_weights=train_sampler_weights,)
 
         parameters['cityscapes']['test_path']=os.path.join(parameters['cityscapes']['test_path'], '') # Add trailing slash if not present
         os.makedirs(parameters['cityscapes']['test_path'], exist_ok=True)
+
+        minority_class_list = []
 
         for loader in tqdm(loaders, desc="CreateImageLoaders"):
             for i, data in tqdm(enumerate(loader['dataloader']), 
@@ -64,17 +80,27 @@ class Test(unittest.TestCase):
                 mean = mean.cpu().numpy()
                 stdev = stdev.cpu().numpy()
 
+
                 for j, image in enumerate(images):
-                   img = imUtil.MergeIman(images[j], labels[j], mean[j], stdev[j])
-                   write_path = '{}{}{:03d}{:03d}.png'.format(parameters['cityscapes']['test_path'], loader['set'], i,j)                   
-                   cv2.imwrite(write_path,img)
+                    minority_class_list.append(22 in labels[j])
+
+                    img = imUtil.MergeIman(images[j], labels[j], mean[j], stdev[j])
+                    write_path = '{}{}{:03d}{:03d}.png'.format(parameters['cityscapes']['test_path'], loader['set'], i,j)                   
+                    cv2.imwrite(write_path,img)
 
                 #    is_success, buffer = cv2.imencode(".png", img)
                 #    if not is_success:
                 #        raise ValueError('test_imstore test_CreateImageLoaders cv2.imencode failure batch {} image {}'.format(i, j))
 
-                if 'test_images' in parameters['cityscapes'] and parameters['cityscapes']['test_images'] is not None and i >= parameters['cityscapes']['test_images']:
+                if not sampler and 'test_images' in parameters['cityscapes'] and parameters['cityscapes']['test_images'] is not None and i >= parameters['cityscapes']['test_images']:
                     break
+                elif sampler and i >= 200:
+                    minority_class_ratio = sum(minority_class_list)/len(minority_class_list)
+                    if minority_class_ratio < 0.44:
+                        print('Weighted Random Sampler maybe dysfunctional. {:4f} ratio is too low for minority class'.format(minority_class_ratio))
+                    break
+            
+            sampler=False
 
 if __name__ == '__main__':
     unittest.main()

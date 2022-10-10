@@ -24,14 +24,15 @@ images:
 cityscapes:
   credentials: creds.yaml
   obj_src: data/cityscapes
-  destination: /nvmestore/mlstore/mllib/data/cityscapes
-  class_dict: model/cityscapes/cityscapes.json
+  destination: /data5/bishal/cityscapes
+  class_dict: model/cityscapes/cityscapesfull.json
   test_path: test/cityscapes
   test_images: 10
   num_workers: 0
   batch_size: 2
   height: 512
   width: 768
+  sampler: True
 
 imagenet:
   credentials: creds.yaml
