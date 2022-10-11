@@ -36,15 +36,12 @@ class Test(unittest.TestCase):
         class_dictionary = s3.GetDict(s3def['sets']['dataset']['bucket'],class_dictionary_path) 
         imUtil = ImUtil({}, class_dictionary)
 
-
+        train_sampler_weights=None
         sampler =parameters['cityscapes']['sampler']
         if sampler:
-            if 'sample_weights' in class_dictionary.keys():
+            if 'sample_weights' in class_dictionary:
                 train_sampler_weights = class_dictionary['sample_weights']
-            else:
-                raise KeyError('Sample weights are not initialized in class dictionary')
-        else:
-            train_sampler_weights=None
+
 
 
         loaders = CreateCityscapesLoaders(s3, s3def, 
