@@ -3,5 +3,5 @@ description: Utilities to load and use pytorch datasets stored in Minio S3
 version:
   major: 0
   minor: 0
-  patch: 86
+  patch: 87
   label: ''
