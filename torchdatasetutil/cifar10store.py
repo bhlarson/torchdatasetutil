@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader
 
 from pymlutil.s3 import s3store, Connect
 from pymlutil.jsonutil import ReadDict
-from pymlutil.imutil import ImUtil, ImTransform, AddGaussianNoise
+from pymlutil.imutil import ImUtil, ImTransform, AddGaussianNoise, ResizePad
 
 default_loaders = [{'set':'train', 'enable_transform':True, 'shuffle': True},
                    {'set':'test', 'enable_transform':False, 'shuffle': False}]
@@ -35,7 +35,7 @@ def CreateCifar10Loaders(dataset_path, batch_size = 2,
             transform_list = []
 
             if width != 32 or height != 32:
-                transform_list.append(transforms.Resize(size=[height,width]))
+                transform_list.append(ResizePad(width, height))
 
             transform_list.append(transforms.RandomHorizontalFlip(p=0.5))
             if rotate > 0 or offset > 0 or scale_min != 1.0 or scale_max != 1.0:
@@ -52,7 +52,7 @@ def CreateCifar10Loaders(dataset_path, batch_size = 2,
         else:
             transform_list = []
             if width != 32 or height != 32:
-                transform_list.append(transforms.Resize(size=[height,width]))
+                transform_list.append(ResizePad(width, height))
             transform_list.append(transforms.ToTensor())
             transform_list.append(transforms.Normalize((0.0, 0.0, 0.0), (1.0, 1.0, 1.0))) # Imagenet mean and standard deviation
 
@@ -87,7 +87,9 @@ def main(args):
                         scale_min=args.augment_scale_min, 
                         scale_max=args.augment_scale_max, 
                         offset=args.augment_translate_x,
-                        augment_noise = args.augment_noise
+                        augment_noise = args.augment_noise,
+                        width = parameters['cifar10']['width'],
+                        height = parameters['cifar10']['height'],
                         )
 
         parameters['cifar10']['test_path']=os.path.join(parameters['cifar10']['test_path'], '') # Add trailing slash if not present
