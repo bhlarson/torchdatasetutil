@@ -42,15 +42,15 @@ imagenet:
   test_images: 10
   num_workers: 0
   batch_size: 2
-  height: 512
-  width: 768
+  height: 224
+  width: 224
   flipX: True 
   flipY: False
-  rotate: 3
-  scale_min: 0.75
-  scale_max: 1.25 
-  offset: 0.1
-  augment_noise: 0.1
+  rotate: 0
+  scale_min: 1.0
+  scale_max: 1.0 
+  offset: 0.0
+  augment_noise: 0.0
 
 cifar10:
   test_path: test/cifar10

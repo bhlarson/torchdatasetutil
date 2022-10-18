@@ -1054,6 +1054,7 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, width=256, height
     # Load dataset
     if loaders is None:
         transform_list = []
+        transform_list.append(transforms.Resize(size=max(width,height)))
         transform_list.append(transforms.RandomHorizontalFlip(p=0.5))
         if rotate > 0 or offset > 0 or scale_min != 1.0 or scale_max != 1.0:
             transform_list.append(transforms.RandomAffine(degrees=rotate,
@@ -1069,6 +1070,7 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, width=256, height
         train_transform = transforms.Compose(transform_list)
 
         test_transform = transforms.Compose([
+            transform_list.append(transforms.Resize(size=max(width,height))),
             transforms.RandomCrop( (width, height), padding=None, pad_if_needed=True, fill=0, padding_mode='constant'),
             transforms.ToTensor(), 
             transforms.Normalize((0.0, 0.0, 0.0), (1.0, 1.0, 1.0)) # Imagenet mean and standard deviation
@@ -1148,12 +1150,13 @@ def main(args):
                     for j, image in enumerate(sample):
                         image = 255*(image - sample_min)/(sample_max-sample_min) # Convert to RGB color rane
                         image = image.cpu().numpy().astype(np.uint8)
+                        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
                         write_path = '{}{}{:03d}{:03d}.png'.format(parameters['imagenet']['test_path'], loader['set'], i,j)            
                         cv2.imwrite(write_path,image)
 
-            if args.num_images is not None and args.num_images > 0 and i >= args.num_images:
-                print ('test_iterator complete')
-                break
+                if args.num_images is not None and args.num_images > 0 and (i+1)*args.batch_size >= args.num_images:
+                    print ('test_iterator complete')
+                    break
 
     print('Test complete')
 
@@ -1167,7 +1170,7 @@ def parse_arguments():
     parser.add_argument('-debug_port', type=int, default=3000, help='Debug port')
     parser.add_argument('-debug_address', type=str, default='0.0.0.0', help='Debug port')
     parser.add_argument('-credentails', type=str, default='creds.yaml', help='Credentials file.')
-    parser.add_argument('-num_images', type=int, default=0, help='Number of images to display')
+    parser.add_argument('-num_images', type=int, default=10, help='Number of images to display')
     parser.add_argument('-num_workers', type=int, default=0, help='Data loader workers')
     parser.add_argument('-batch_size', type=int, default=4, help='Dataset batch size')
     parser.add_argument('-i', action='store_true', help='True to test iterator')
