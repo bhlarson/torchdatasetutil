@@ -5,7 +5,6 @@ import numpy as np
 import cv2
 import json
 import functools
-import random
 from collections import defaultdict
 import torch
 from tqdm import tqdm
@@ -16,20 +15,7 @@ from torch.utils.data import DataLoader
 
 from pymlutil.s3 import s3store, Connect
 from pymlutil.jsonutil import ReadDict
-from pymlutil.imutil import ImUtil, ImTransform
-
-class AddGaussianNoise(object):
-    def __init__(self, mean=0., std=1.):
-        self.std = std
-        self.mean = mean
-        
-    def __call__(self, tensor):
-        rand_std = random.uniform(0, self.std)
-        return tensor + torch.randn(tensor.size()) * rand_std + self.mean
-    
-    def __repr__(self):
-        return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean, self.std)
-
+from pymlutil.imutil import ImUtil, ImTransform, AddGaussianNoise
 
 default_loaders = [{'set':'train', 'enable_transform':True, 'shuffle': True},
                    {'set':'test', 'enable_transform':False, 'shuffle': False}]
@@ -49,7 +35,7 @@ def CreateCifar10Loaders(dataset_path, batch_size = 2,
             transform_list = []
 
             if width != 32 or height != 32:
-                transform_list.append(transforms.Resize(size=[height,height]))
+                transform_list.append(transforms.Resize(size=[height,width]))
 
             transform_list.append(transforms.RandomHorizontalFlip(p=0.5))
             if rotate > 0 or offset > 0 or scale_min != 1.0 or scale_max != 1.0:
@@ -66,7 +52,7 @@ def CreateCifar10Loaders(dataset_path, batch_size = 2,
         else:
             transform_list = []
             if width != 32 or height != 32:
-                transform_list.append(transforms.Resize(size=[height,height]))
+                transform_list.append(transforms.Resize(size=[height,width]))
             transform_list.append(transforms.ToTensor())
             transform_list.append(transforms.Normalize((0.0, 0.0, 0.0), (1.0, 1.0, 1.0))) # Imagenet mean and standard deviation
 
@@ -130,7 +116,7 @@ def main(args):
                         cv2.imwrite(write_path,image)
 
                 if args.num_images is not None and args.num_images > 0 and i >= args.num_images:
-                    print ('test_iterator complete')
+                    print ('test_dataset complete')
                     break
 
     print('Test complete')
@@ -149,8 +135,6 @@ def parse_arguments():
     parser.add_argument('-num_images', type=int, default=10, help='Number of images to display')
     parser.add_argument('-num_workers', type=int, default=0, help='Data loader workers')
     parser.add_argument('-batch_size', type=int, default=4, help='Dataset batch size')
-    parser.add_argument('-i', action='store_true', help='True to test iterator')
-    parser.add_argument('-test_iterator', type=bool, default=False, help='True to test iterator')
     parser.add_argument('-ds', action='store_true', help='True to test dataset')
     parser.add_argument('-test_dataset', action='store_true', help='True to test dataset')
     parser.add_argument('-test_path', type=str, default='./datasets_test/', help='Test path ending in a forward slash')
@@ -167,9 +151,6 @@ def parse_arguments():
     parser.add_argument('-augment_noise', type=float, default=0.1, help='Augment image noise')
 
     args = parser.parse_args()
-
-    if args.i:
-        args.test_iterator = True
 
     if args.ds:
         args.test_dataset = True

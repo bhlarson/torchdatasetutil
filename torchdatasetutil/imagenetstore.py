@@ -5,7 +5,6 @@ import numpy as np
 import cv2
 import json
 import functools
-import random
 from collections import defaultdict
 import torch
 from tqdm import tqdm
@@ -15,7 +14,7 @@ from torch.utils.data import DataLoader
 
 from pymlutil.s3 import s3store, Connect
 from pymlutil.jsonutil import ReadDict
-from pymlutil.imutil import ImUtil, ImTransform
+from pymlutil.imutil import ImUtil, ImTransform, AddGaussianNoise, ResizePad
 
 ImagenetClasses = ['tench, Tinca tinca',
 'goldfish, Carassius auratus',
@@ -1018,19 +1017,6 @@ ImagenetClasses = ['tench, Tinca tinca',
 'ear, spike, capitulum',
 'toilet tissue, toilet paper, bathroom tissue']
 
-class AddGaussianNoise(object):
-    def __init__(self, mean=0., std=1.):
-        self.std = std
-        self.mean = mean
-        
-    def __call__(self, tensor):
-        rand_std = random.uniform(0, self.std)
-        return tensor + torch.randn(tensor.size()) * rand_std + self.mean
-    
-    def __repr__(self):
-        return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean, self.std)
-
-
 def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, width=256, height=256, batch_size = 2, shuffle=True, 
                       num_workers=0, cuda = True, timeout=0, loaders = None, 
                       image_transform=None, label_transform=None, 
@@ -1054,7 +1040,8 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, width=256, height
     # Load dataset
     if loaders is None:
         transform_list = []
-        transform_list.append(transforms.Resize(size=max(width,height)))
+        #transform_list.append(transforms.Resize(size=max(width,height)-1,max_size=max(width,height)))
+        transform_list.append(ResizePad(width, height))
         transform_list.append(transforms.RandomHorizontalFlip(p=0.5))
         if rotate > 0 or offset > 0 or scale_min != 1.0 or scale_max != 1.0:
             transform_list.append(transforms.RandomAffine(degrees=rotate,
@@ -1070,7 +1057,7 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, width=256, height
         train_transform = transforms.Compose(transform_list)
 
         test_transform = transforms.Compose([
-            transform_list.append(transforms.Resize(size=max(width,height))),
+            ResizePad(width, height),
             transforms.RandomCrop( (width, height), padding=None, pad_if_needed=True, fill=0, padding_mode='constant'),
             transforms.ToTensor(), 
             transforms.Normalize((0.0, 0.0, 0.0), (1.0, 1.0, 1.0)) # Imagenet mean and standard deviation
@@ -1172,7 +1159,7 @@ def parse_arguments():
     parser.add_argument('-credentails', type=str, default='creds.yaml', help='Credentials file.')
     parser.add_argument('-num_images', type=int, default=10, help='Number of images to display')
     parser.add_argument('-num_workers', type=int, default=0, help='Data loader workers')
-    parser.add_argument('-batch_size', type=int, default=4, help='Dataset batch size')
+    parser.add_argument('-batch_size', type=int, default=1, help='Dataset batch size')
     parser.add_argument('-i', action='store_true', help='True to test iterator')
     parser.add_argument('-test_iterator', type=bool, default=False, help='True to test iterator')
     parser.add_argument('-ds', action='store_true', help='True to test dataset')
@@ -1184,8 +1171,8 @@ def parse_arguments():
     #parser.add_argument('-destination', type=str, default='/data/datsets', help='Object storage dataset source')
     parser.add_argument('-destination', type=str, default='/nvmestore/mlstore/mllib/data/imagenet', help='Object storage dataset source')
 
-    parser.add_argument('-height', type=int, default=256, help='Batch image height')
-    parser.add_argument('-width', type=int, default=256, help='Batch image width')
+    parser.add_argument('-height', type=int, default=224, help='Batch image height')
+    parser.add_argument('-width', type=int, default=224, help='Batch image width')
     parser.add_argument('-imflags', type=int, default=cv2.IMREAD_COLOR, help='cv2.imdecode flags')
     parser.add_argument('-cuda', type=bool, default=True, help='pytorch CUDA flag') 
     parser.add_argument('-numTries', type=int, default=3, help="Read retries")
