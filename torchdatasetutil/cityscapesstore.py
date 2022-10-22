@@ -310,7 +310,7 @@ def CreateCityscapesLoaders(s3, s3def, src, dest, class_dictionary, bucket = Non
     if loaders is None:
 
         default_loaders = [{'set':'train', 'dataset': dest, 'enable_transform':True, 'mode':'fine', 'target_type':['semantic'], 'class_dictionary':class_dictionary } ,
-                        {'set':'val', 'dataset': dest, 'enable_transform':False, 'mode':'fine', 'target_type':['semantic'], 'class_dictionary':class_dictionary}]
+                        {'set':'test', 'dataset': dest, 'enable_transform':False, 'mode':'fine', 'target_type':['semantic'], 'class_dictionary':class_dictionary}]
 
         loaders = default_loaders
 
@@ -343,9 +343,10 @@ def CreateCityscapesLoaders(s3, s3def, src, dest, class_dictionary, bucket = Non
         
         if train_sampler_weights is not None and loader['set'] == 'train':
             sampler=WeightedRandomSampler(weights=train_sampler_weights, num_samples=len(train_sampler_weights), replacement=True)
-            shuffle=False
+            shuffle=True
         else:
             sampler=None
+            shuffle=False
 
         loader['dataloader'] = torch.utils.data.DataLoader(dataset=dataset,
                                                 batch_size=batch_size,
@@ -355,7 +356,7 @@ def CreateCityscapesLoaders(s3, s3def, src, dest, class_dictionary, bucket = Non
                                                 sampler=sampler)
 
         # Creating PT data samplers and loaders:
-        loader['batches'] =int(len(loader['dataloader'])/batch_size)
+        loader['batches'] =len(loader['dataloader'])
         loader['length'] = loader['batches']*batch_size
         loader['width']=width
         loader['height']=height
