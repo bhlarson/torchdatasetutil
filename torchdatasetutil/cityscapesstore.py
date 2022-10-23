@@ -310,7 +310,7 @@ def CreateCityscapesLoaders(s3, s3def, src, dest, class_dictionary, bucket = Non
     if loaders is None:
 
         default_loaders = [{'set':'train', 'dataset': dest, 'enable_transform':True, 'mode':'fine', 'target_type':['semantic'], 'class_dictionary':class_dictionary } ,
-                        {'set':'test', 'dataset': dest, 'enable_transform':False, 'mode':'fine', 'target_type':['semantic'], 'class_dictionary':class_dictionary}]
+                        {'set':'val', 'dataset': dest, 'enable_transform':False, 'mode':'fine', 'target_type':['semantic'], 'class_dictionary':class_dictionary}]
 
         loaders = default_loaders
 
@@ -318,19 +318,33 @@ def CreateCityscapesLoaders(s3, s3def, src, dest, class_dictionary, bucket = Non
     allocated = 0.0
 
     for i, loader in enumerate(loaders):
-        transform = ImTransform(height=height, width=width, 
-                                normalize=normalize, 
-                                enable_transform=loader['enable_transform'],
-                                flipX=flipX, 
-                                flipY=flipY, 
-                                rotate=rotate, 
-                                scale_min=scale_min, 
-                                scale_max=scale_max, 
-                                offset=offset, 
-                                astype=astype,
-                                borderType=borderType,
-                                borderValue=borderValue,
-                                )
+        if train_sampler_weights is not None and loader['set'] == 'train':
+            sampler=WeightedRandomSampler(weights=train_sampler_weights, num_samples=len(train_sampler_weights), replacement=True)
+            shuffle=True
+            transform = ImTransform(height=height, width=width, 
+                                    normalize=normalize, 
+                                    enable_transform=loader['enable_transform'],
+                                    flipX=flipX, 
+                                    flipY=flipY, 
+                                    rotate=rotate, 
+                                    scale_min=scale_min, 
+                                    scale_max=scale_max, 
+                                    offset=offset, 
+                                    astype=astype,
+                                    borderType=borderType,
+                                    borderValue=borderValue,
+                                    )
+
+        else:
+            sampler=None
+            shuffle=False
+            transform = ImTransform(height=height, width=width, 
+                                    normalize=normalize, 
+                                    astype=astype,
+                                    enable_transform=False, 
+                                    borderType=borderType,
+                                    borderValue=borderValue,
+                                    )
 
 
         dataset = CityscapesDataset(root=loader['dataset'],
@@ -341,12 +355,7 @@ def CreateCityscapesLoaders(s3, s3def, src, dest, class_dictionary, bucket = Non
                                     transforms=transform
                                    )
         
-        if train_sampler_weights is not None and loader['set'] == 'train':
-            sampler=WeightedRandomSampler(weights=train_sampler_weights, num_samples=len(train_sampler_weights), replacement=True)
-            shuffle=True
-        else:
-            sampler=None
-            shuffle=False
+
 
         loader['dataloader'] = torch.utils.data.DataLoader(dataset=dataset,
                                                 batch_size=batch_size,
