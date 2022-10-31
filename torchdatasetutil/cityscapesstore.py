@@ -293,7 +293,6 @@ def CreateCityscapesLoaders(s3, s3def, src, dest, class_dictionary, bucket = Non
                       borderType=cv2.BORDER_CONSTANT,
                       borderValue=0,
                       train_sampler_weights=None):
-
     if not bucket:
         bucket = s3def['sets']['dataset']['bucket']
 
@@ -320,7 +319,8 @@ def CreateCityscapesLoaders(s3, s3def, src, dest, class_dictionary, bucket = Non
     for i, loader in enumerate(loaders):
         if train_sampler_weights is not None and loader['set'] == 'train':
             sampler=WeightedRandomSampler(weights=train_sampler_weights, num_samples=len(train_sampler_weights), replacement=True)
-            shuffle=True
+            print('Weighted Random Sampler is initiated!')
+            shuffle=False
             transform = ImTransform(height=height, width=width, 
                                     normalize=normalize, 
                                     enable_transform=loader['enable_transform'],

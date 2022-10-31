@@ -38,9 +38,9 @@ class Test(unittest.TestCase):
 
         train_sampler_weights=None
         sampler =parameters['cityscapes']['sampler']
-        if sampler:
-            if 'sample_weights' in class_dictionary:
-                train_sampler_weights = class_dictionary['sample_weights']
+        if sampler and 'sample_weights' in class_dictionary:
+                train_sampler_weights = class_dictionary['sample_weights']['weights']
+                upsampled_class = class_dictionary['sample_weights']['class']
 
 
 
@@ -79,7 +79,7 @@ class Test(unittest.TestCase):
 
 
                 for j, image in enumerate(images):
-                    minority_class_list.append(22 in labels[j])
+                    minority_class_list.append(upsampled_class in labels[j])
 
                     img = imUtil.MergeIman(images[j], labels[j], mean[j], stdev[j])
                     write_path = '{}{}{:03d}{:03d}.png'.format(parameters['cityscapes']['test_path'], loader['set'], i,j)                   
@@ -93,8 +93,8 @@ class Test(unittest.TestCase):
                     break
                 elif sampler and i >= 200:
                     minority_class_ratio = sum(minority_class_list)/len(minority_class_list)
-                    if minority_class_ratio < 0.44:
-                        print('Weighted Random Sampler maybe dysfunctional. {:4f} ratio is too low for minority class'.format(minority_class_ratio))
+                    if minority_class_ratio < 0.2:
+                        raise ValueError('Weighted Random Sampler maybe dysfunctional. {:4f} ratio is too low for specified minority class'.format(minority_class_ratio))
                     break
             
             sampler=False

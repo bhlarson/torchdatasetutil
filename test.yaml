@@ -24,7 +24,7 @@ images:
 cityscapes:
   credentials: creds.yaml
   obj_src: data/cityscapes
-  destination: /nvmestore/mlstore/mllib/data/cityscapes
+  destination: /data/datasets/cityscapes
   class_dict: model/cityscapes/cityscapesfull.json
   test_path: test/cityscapes
   test_images: 10
