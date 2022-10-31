@@ -36,11 +36,13 @@ class Test(unittest.TestCase):
         class_dictionary = s3.GetDict(s3def['sets']['dataset']['bucket'],class_dictionary_path) 
         imUtil = ImUtil({}, class_dictionary)
 
-        train_sampler_weights=None
         sampler =parameters['cityscapes']['sampler']
         if sampler and 'sample_weights' in class_dictionary:
                 train_sampler_weights = class_dictionary['sample_weights']['weights']
                 upsampled_class = class_dictionary['sample_weights']['class']
+        else:
+            train_sampler_weights=None
+            upsampled_class=None
 
 
 
@@ -79,7 +81,8 @@ class Test(unittest.TestCase):
 
 
                 for j, image in enumerate(images):
-                    minority_class_list.append(upsampled_class in labels[j])
+                    if upsampled_class is not None:
+                        minority_class_list.append(upsampled_class in labels[j])
 
                     img = imUtil.MergeIman(images[j], labels[j], mean[j], stdev[j])
                     write_path = '{}{}{:03d}{:03d}.png'.format(parameters['cityscapes']['test_path'], loader['set'], i,j)                   
