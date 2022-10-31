@@ -32,8 +32,7 @@ class Test(unittest.TestCase):
 
         s3, creds, s3def = Connect(parameters['images']['credentials'])
 
-        class_dictionary_path = parameters['cityscapes']['class_dict']
-        class_dictionary = s3.GetDict(s3def['sets']['dataset']['bucket'],class_dictionary_path) 
+        class_dictionary = ReadDict(parameters['cityscapes']['class_dict'])
         imUtil = ImUtil({}, class_dictionary)
 
         train_sampler_weights=None
@@ -89,12 +88,13 @@ class Test(unittest.TestCase):
                 #    if not is_success:
                 #        raise ValueError('test_imstore test_CreateImageLoaders cv2.imencode failure batch {} image {}'.format(i, j))
 
-                if not sampler and 'test_images' in parameters['cityscapes'] and parameters['cityscapes']['test_images'] is not None and i >= parameters['cityscapes']['test_images']:
-                    break
-                elif sampler and i >= 200:
+                if sampler and i >= 200:
                     minority_class_ratio = sum(minority_class_list)/len(minority_class_list)
                     if minority_class_ratio < 0.2:
                         raise ValueError('Weighted Random Sampler maybe dysfunctional. {:4f} ratio is too low for specified minority class'.format(minority_class_ratio))
+                    break
+
+                if 'test_images' in parameters['cityscapes'] and parameters['cityscapes']['test_images'] is not None and i*parameters['cityscapes']['batch_size'] >= parameters['cityscapes']['test_images']:
                     break
             
             sampler=False

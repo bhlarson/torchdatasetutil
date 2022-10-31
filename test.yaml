@@ -25,7 +25,7 @@ cityscapes:
   credentials: creds.yaml
   obj_src: data/cityscapes
   destination: /data/datasets/cityscapes
-  class_dict: model/cityscapes/cityscapesfull.json
+  class_dict: tests/cityscapesfull.json
   test_path: test/cityscapes
   test_images: 10
   num_workers: 0
