@@ -280,7 +280,7 @@ class CityscapesDataset(VisionDataset):
 
 def CreateCityscapesLoaders(s3, s3def, src, dest, class_dictionary, bucket = None, width=256, height=256, batch_size = 2, shuffle=True, 
                       num_workers=0, cuda = True, timeout=0, loaders = None, 
-                      image_transform=None, label_transform=None, 
+                      transforms=True, 
                       normalize=True, 
                       random_seed = None, numTries=3,
                       flipX=True, 
@@ -317,34 +317,38 @@ def CreateCityscapesLoaders(s3, s3def, src, dest, class_dictionary, bucket = Non
     allocated = 0.0
 
     for i, loader in enumerate(loaders):
+
         if train_sampler_weights is not None and loader['set'] == 'train':
             sampler=WeightedRandomSampler(weights=train_sampler_weights, num_samples=len(train_sampler_weights), replacement=True)
-            print('Weighted Random Sampler is initiated!')
             shuffle=False
-            transform = ImTransform(height=height, width=width, 
-                                    normalize=normalize, 
-                                    enable_transform=loader['enable_transform'],
-                                    flipX=flipX, 
-                                    flipY=flipY, 
-                                    rotate=rotate, 
-                                    scale_min=scale_min, 
-                                    scale_max=scale_max, 
-                                    offset=offset, 
-                                    astype=astype,
-                                    borderType=borderType,
-                                    borderValue=borderValue,
-                                    )
-
+            print('Weighted Random Sampler is initiated!')
         else:
             sampler=None
-            shuffle=False
+
+
+        if transforms and loader['set'] == 'train':
             transform = ImTransform(height=height, width=width, 
-                                    normalize=normalize, 
-                                    astype=astype,
-                                    enable_transform=False, 
-                                    borderType=borderType,
-                                    borderValue=borderValue,
-                                    )
+                        normalize=normalize, 
+                        enable_transform=loader['enable_transform'],
+                        flipX=flipX, 
+                        flipY=flipY, 
+                        rotate=rotate, 
+                        scale_min=scale_min, 
+                        scale_max=scale_max, 
+                        offset=offset, 
+                        astype=astype,
+                        borderType=borderType,
+                        borderValue=borderValue,
+                        )
+        elif transforms:
+            transform = ImTransform(height=height, width=width, 
+                        normalize=normalize, 
+                        astype=astype,
+                        enable_transform=False, 
+                        borderType=borderType,
+                        borderValue=borderValue,
+                        )
+            
 
 
         dataset = CityscapesDataset(root=loader['dataset'],
