@@ -1064,8 +1064,11 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, width=256, height
                 transforms.Normalize((0.0, 0.0, 0.0), (1.0, 1.0, 1.0)) # Imagenet mean and standard deviation
             ])
         else:
-            train_transform = None
-            test_transform = None
+            test_transform = train_transform = transforms.Compose([
+                ResizePad(width, height),
+                transforms.RandomCrop( (width, height), padding=None, pad_if_needed=True, fill=0, padding_mode='constant'),
+                transforms.ToTensor(), 
+            ])
 
         default_loaders = [{'set':'train', 'dataset': dest, 'enable_transform':True, 'transform':train_transform},
                         {'set':'val', 'dataset': dest, 'enable_transform':False, 'transform':test_transform}]
