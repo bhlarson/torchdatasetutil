@@ -1070,7 +1070,7 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, width=256, height
             #     transforms.ToTensor(), 
             # ])
             test_transform = train_transform = transforms.Compose([
-                transforms.Resize(256),
+                transforms.Resize(232),
                 transforms.CenterCrop(224),
                 transforms.ToTensor(),
                 transforms.Normalize(

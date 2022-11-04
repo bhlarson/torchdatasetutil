@@ -112,3 +112,5 @@ if args.dataset=='cityscapes':
     ```cmd
     tar -czvf ILSVRC2012_devkit_t12.tar.gz ILSVRC/Data/CLS-LOC
     ```
+1. Imagenet [directories](https://github.com/HoldenCaulfieldRye/caffe/blob/master/data/ilsvrc12/synset_words.txt)
+1. Imagenet [indexes](https://deeplearning.cms.waikato.ac.nz/user-guide/class-maps/IMAGENET/)
