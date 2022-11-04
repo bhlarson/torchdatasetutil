@@ -1020,7 +1020,7 @@ ImagenetClasses = ['tench, Tinca tinca',
 def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, width=256, height=256, batch_size = 2, shuffle=True, 
                       num_workers=0, cuda = True, timeout=0, loaders = None, 
                       image_transform=None, label_transform=None, 
-                      normalize=True, flipX=True, flipY=False, 
+                      normalize=False, flipX=True, flipY=False, 
                       random_seed = None, numTries=3,
                       rotate=3, scale_min=0.75, scale_max=1.25, offset=0.1, augment_noise=1.0):
 
@@ -1051,7 +1051,9 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, width=256, height
                         interpolation=transforms.InterpolationMode.BILINEAR))
             transform_list.append(transforms.RandomCrop( (width, height), padding=None, pad_if_needed=True, fill=0, padding_mode='constant'))
             transform_list.append(transforms.ToTensor())
-            transform_list.append(transforms.Normalize((0.0, 0.0, 0.0), (1.0, 1.0, 1.0))) # Imagenet mean and standard deviation
+            transform_list.append(transforms.Normalize(
+                mean=[0.485, 0.456, 0.406],
+                std=[0.229, 0.224, 0.225]))
             if augment_noise > 0.0:
                 transform_list.append(AddGaussianNoise(0., augment_noise))
 
@@ -1059,9 +1061,10 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, width=256, height
 
             test_transform = transforms.Compose([
                 ResizePad(width, height),
-                transforms.RandomCrop( (width, height), padding=None, pad_if_needed=True, fill=0, padding_mode='constant'),
-                transforms.ToTensor(), 
-                transforms.Normalize((0.0, 0.0, 0.0), (1.0, 1.0, 1.0)) # Imagenet mean and standard deviation
+                transforms.RandomCrop( (width, height), padding=None, pad_if_needed=True, fill=0, padding_mode='constant'),                transforms.ToTensor(), 
+                transforms.Normalize(
+                mean=[0.485, 0.456, 0.406],
+                std=[0.229, 0.224, 0.225])
             ])
         else:
             # test_transform = train_transform = transforms.Compose([
@@ -1069,6 +1072,7 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, width=256, height
             #     transforms.RandomCrop( (width, height), padding=None, pad_if_needed=True, fill=0, padding_mode='constant'),
             #     transforms.ToTensor(), 
             # ])
+            # Imagenet resize
             test_transform = train_transform = transforms.Compose([
                 transforms.Resize(232),
                 transforms.CenterCrop(224),
@@ -1085,12 +1089,21 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, width=256, height
 
     startIndex = 0
     allocated = 0.0
+    remove_samples = [{'index':997, 'dir': 'n13054560'}] # Remove class 997 directory n13054560 matching pytorch pretraining: https://pytorch.org/vision/main/models/generated/torchvision.models.resnet101.html
 
     for i, loader in enumerate(loaders):
 
-
-
         imagenet_data = datasets.ImageNet(loader['dataset'], split=loader['set'], transform=loader['transform'])
+
+        for remove_sample in remove_samples:
+            dir_path = '{}{}/{}'.format(loader['dataset'],loader['set'], remove_sample['dir'])
+            files = os.listdir(dir_path)
+ 
+            for image_file in files:
+                impath = os.path.join(dir_path, image_file)
+                if os.path.isfile(impath):
+                    imagenet_data.imgs.remove((impath,remove_sample['index']))
+
         loader['dataloader'] = torch.utils.data.DataLoader(imagenet_data,
                                                 batch_size=batch_size,
                                                 shuffle=shuffle,
@@ -1114,51 +1127,50 @@ def main(args):
 
     parameters = ReadDict(args.test_config)
 
-    if args.test_dataset:
-        loaders = CreateImagenetLoaders(s3, s3def, 
-                                    args.obj_src, 
-                                    args.destination, 
-                                    width=args.width, 
-                                    height=args.height, 
-                                    batch_size=args.batch_size, 
-                                    num_workers=args.num_workers,
-                                    cuda = args.cuda,
-                                    flipX=parameters['imagenet']['flipX'], 
-                                    flipY=parameters['imagenet']['flipY'], 
-                                    rotate=parameters['imagenet']['rotate'], 
-                                    scale_min=parameters['imagenet']['scale_min'], 
-                                    scale_max=parameters['imagenet']['scale_max'], 
-                                    offset=parameters['imagenet']['offset'], 
-                                    augment_noise=parameters['imagenet']['augment_noise'])
+    loaders = CreateImagenetLoaders(s3, s3def, 
+                                args.obj_src, 
+                                args.destination, 
+                                width=args.width, 
+                                height=args.height, 
+                                batch_size=args.batch_size, 
+                                num_workers=args.num_workers,
+                                cuda = args.cuda,
+                                flipX=parameters['imagenet']['flipX'], 
+                                flipY=parameters['imagenet']['flipY'], 
+                                rotate=parameters['imagenet']['rotate'], 
+                                scale_min=parameters['imagenet']['scale_min'], 
+                                scale_max=parameters['imagenet']['scale_max'], 
+                                offset=parameters['imagenet']['offset'], 
+                                augment_noise=parameters['imagenet']['augment_noise'])
 
-        parameters['imagenet']['test_path']=os.path.join(parameters['imagenet']['test_path'], '') # Add trailing slash if not present
-        os.makedirs(parameters['imagenet']['test_path'], exist_ok=True)
+    parameters['imagenet']['test_path']=os.path.join(parameters['imagenet']['test_path'], '') # Add trailing slash if not present
+    os.makedirs(parameters['imagenet']['test_path'], exist_ok=True)
 
-        for loader in tqdm(loaders, desc="Loader"):
-            for i, data in tqdm(enumerate(loader['dataloader']), 
-                                desc="Batch Reads", 
-                                total=loader['batches']):
-                sample, target = data
-                assert(sample is not None)
-                assert(sample.shape[0] == args.batch_size)
-                assert(sample.shape[2] == args.height)
-                assert(sample.shape[3] == args.width)
-                assert(target is not None)
+    for loader in tqdm(loaders, desc="Loader"):
+        for i, data in tqdm(enumerate(loader['dataloader']), 
+                            desc="Batch Reads", 
+                            total=loader['batches']):
+            sample, target = data
+            assert(sample is not None)
+            assert(sample.shape[0] == args.batch_size)
+            assert(sample.shape[2] == args.height)
+            assert(sample.shape[3] == args.width)
+            assert(target is not None)
 
-                sample =  sample.permute(0, 2, 3, 1) # Change to batch, height, width, channel for rendering
-                sample_max = sample.max()
-                sample_min = sample.min()
-                if sample_max > sample_min:
-                    for j, image in enumerate(sample):
-                        image = 255*(image - sample_min)/(sample_max-sample_min) # Convert to RGB color rane
-                        image = image.cpu().numpy().astype(np.uint8)
-                        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-                        write_path = '{}{}{:03d}{:03d}.png'.format(parameters['imagenet']['test_path'], loader['set'], i,j)            
-                        cv2.imwrite(write_path,image)
+            # sample =  sample.permute(0, 2, 3, 1) # Change to batch, height, width, channel for rendering
+            # sample_max = sample.max()
+            # sample_min = sample.min()
+            # if sample_max > sample_min:
+            #     for j, image in enumerate(sample):
+            #         image = 255*(image - sample_min)/(sample_max-sample_min) # Convert to RGB color rane
+            #         image = image.cpu().numpy().astype(np.uint8)
+            #         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+            #         write_path = '{}{}{:03d}{:03d}.png'.format(parameters['imagenet']['test_path'], loader['set'], i,j)            
+            #         cv2.imwrite(write_path,image)
 
-                if args.num_images is not None and args.num_images > 0 and (i+1)*args.batch_size >= args.num_images:
-                    print ('test_iterator complete')
-                    break
+            if args.num_images is not None and args.num_images > 0 and (i+1)*args.batch_size >= args.num_images:
+                print ('test_iterator complete')
+                break
 
     print('Test complete')
 
@@ -1172,8 +1184,8 @@ def parse_arguments():
     parser.add_argument('-debug_port', type=int, default=3000, help='Debug port')
     parser.add_argument('-debug_address', type=str, default='0.0.0.0', help='Debug port')
     parser.add_argument('-credentails', type=str, default='creds.yaml', help='Credentials file.')
-    parser.add_argument('-num_images', type=int, default=10, help='Number of images to display')
-    parser.add_argument('-num_workers', type=int, default=0, help='Data loader workers')
+    parser.add_argument('-num_images', type=int, default=None, help='Number of images to display')
+    parser.add_argument('-num_workers', type=int, default=25, help='Data loader workers')
     parser.add_argument('-batch_size', type=int, default=1, help='Dataset batch size')
     parser.add_argument('-i', action='store_true', help='True to test iterator')
     parser.add_argument('-test_iterator', type=bool, default=False, help='True to test iterator')
