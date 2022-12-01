@@ -1017,12 +1017,13 @@ ImagenetClasses = ['tench, Tinca tinca',
 'ear, spike, capitulum',
 'toilet tissue, toilet paper, bathroom tissue']
 
-def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, width=256, height=256, batch_size = 2, shuffle=True, 
+def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, resize_width=256, resize_height=256, crop_width=256, crop_height=256, batch_size = 2, shuffle=True, 
                       num_workers=0, cuda = True, timeout=0, loaders = None, 
                       image_transform=None, label_transform=None, 
-                      normalize=False, flipX=True, flipY=False, 
+                      augment=True, normalize=False, flipX=True, flipY=False, 
                       random_seed = None, numTries=3,
-                      rotate=3, scale_min=0.75, scale_max=1.25, offset=0.1, augment_noise=1.0):
+                      rotate=3, scale_min=0.75, scale_max=1.25, offset=0.1, augment_noise=1.0, 
+                      normalize_mean = [0.485, 0.456, 0.406], normalize_std=[0.229, 0.224, 0.225]):
 
     if not bucket:
         bucket = s3def['sets']['dataset']['bucket']
@@ -1039,33 +1040,53 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, width=256, height
 
     # Load dataset
     if loaders is None:
-        if normalize:
+        if augment:
             transform_list = []
-            #transform_list.append(transforms.Resize(size=max(width,height)-1,max_size=max(width,height)))
-            transform_list.append(ResizePad(width, height))
+            transform_list.append(ResizePad(resize_width, resize_height))
             transform_list.append(transforms.RandomHorizontalFlip(p=0.5))
             if rotate > 0 or offset > 0 or scale_min != 1.0 or scale_max != 1.0:
                 transform_list.append(transforms.RandomAffine(degrees=rotate,
                         translate=(offset, offset), 
                         scale=(scale_min, scale_max), 
                         interpolation=transforms.InterpolationMode.BILINEAR))
-            transform_list.append(transforms.RandomCrop( (width, height), padding=None, pad_if_needed=True, fill=0, padding_mode='constant'))
+            transform_list.append(transforms.RandomCrop( (crop_width, crop_height), padding=None, pad_if_needed=True, fill=0, padding_mode='constant'))
             transform_list.append(transforms.ToTensor())
             transform_list.append(transforms.Normalize(
-                mean=[0.485, 0.456, 0.406],
-                std=[0.229, 0.224, 0.225]))
+                mean=normalize_mean,
+                std=normalize_std))
             if augment_noise > 0.0:
                 transform_list.append(AddGaussianNoise(0., augment_noise))
 
             train_transform = transforms.Compose(transform_list)
 
             test_transform = transforms.Compose([
-                ResizePad(width, height),
-                transforms.RandomCrop( (width, height), padding=None, pad_if_needed=True, fill=0, padding_mode='constant'),                transforms.ToTensor(), 
+                ResizePad(resize_width, resize_height),
+                transforms.CenterCrop( (crop_width, crop_height), padding=None, pad_if_needed=True, fill=0, padding_mode='constant'),
+                transforms.ToTensor(), 
                 transforms.Normalize(
-                mean=[0.485, 0.456, 0.406],
-                std=[0.229, 0.224, 0.225])
+                mean=normalize_mean,
+                std=normalize_std)
             ])
+
+            width = resize_width
+            height = resize_height
+        elif normalize:
+            # test_transform = train_transform = transforms.Compose([
+            #     ResizePad(width, height),
+            #     transforms.RandomCrop( (width, height), padding=None, pad_if_needed=True, fill=0, padding_mode='constant'),
+            #     transforms.ToTensor(), 
+            # ])
+            # Imagenet resize
+            test_transform = train_transform = transforms.Compose([
+                transforms.Resize(resize_width),
+                transforms.CenterCrop(crop_width),
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=normalize_mean,
+                    std=normalize_std)
+            ])
+            width = resize_width
+            height = resize_width
         else:
             # test_transform = train_transform = transforms.Compose([
             #     ResizePad(width, height),
@@ -1074,13 +1095,10 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, width=256, height
             # ])
             # Imagenet resize
             test_transform = train_transform = transforms.Compose([
-                #transforms.Resize(width),
-                #transforms.CenterCrop(224),
                 transforms.ToTensor(),
-                #transforms.Normalize(
-                    # mean=[0.485, 0.456, 0.406],
-                    # std=[0.229, 0.224, 0.225])
             ])
+            width = None
+            height = None
 
         default_loaders = [{'set':'train', 'dataset': dest, 'enable_transform':True, 'transform':train_transform},
                         {'set':'val', 'dataset': dest, 'enable_transform':False, 'transform':test_transform}]
@@ -1129,12 +1147,15 @@ def main(args):
 
     loaders = CreateImagenetLoaders(s3, s3def, 
                                 args.obj_src, 
-                                args.destination, 
-                                width=args.width, 
-                                height=args.height, 
-                                batch_size=args.batch_size, 
-                                num_workers=args.num_workers,
-                                cuda = args.cuda,
+                                args.destination,
+                                augment=parameters['imagenet']['augment'], 
+                                normalize=parameters['imagenet']['normalize'], 
+                                resize_width=parameters['imagenet']['width'], 
+                                resize_height=parameters['imagenet']['height'],
+                                crop_width=parameters['imagenet']['width'], 
+                                crop_height=parameters['imagenet']['height'], 
+                                batch_size=parameters['imagenet']['batch_size'], 
+                                num_workers=parameters['imagenet']['num_workers'],
                                 flipX=parameters['imagenet']['flipX'], 
                                 flipY=parameters['imagenet']['flipY'], 
                                 rotate=parameters['imagenet']['rotate'], 
@@ -1152,23 +1173,26 @@ def main(args):
                             total=loader['batches']):
             sample, target = data
             assert(sample is not None)
-            assert(sample.shape[0] == args.batch_size)
-            assert(sample.shape[2] == args.height)
-            assert(sample.shape[3] == args.width)
+            assert(sample.shape[0] == parameters['imagenet']['batch_size'])
+            if loader['height'] is not None:
+                assert(sample.shape[2] == loader['height'])
+            if loader['width'] is not None:
+                assert(sample.shape[3] == loader['width'])
             assert(target is not None)
 
-            # sample =  sample.permute(0, 2, 3, 1) # Change to batch, height, width, channel for rendering
-            # sample_max = sample.max()
-            # sample_min = sample.min()
-            # if sample_max > sample_min:
-            #     for j, image in enumerate(sample):
-            #         image = 255*(image - sample_min)/(sample_max-sample_min) # Convert to RGB color rane
-            #         image = image.cpu().numpy().astype(np.uint8)
-            #         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-            #         write_path = '{}{}{:03d}{:03d}.png'.format(parameters['imagenet']['test_path'], loader['set'], i,j)            
-            #         cv2.imwrite(write_path,image)
+            if parameters['imagenet']['save_image']:
+                sample =  sample.permute(0, 2, 3, 1) # Change to batch, height, width, channel for rendering
+                sample_max = sample.max()
+                sample_min = sample.min()
+                if sample_max > sample_min:
+                    for j, image in enumerate(sample):
+                        image = 255*(image - sample_min)/(sample_max-sample_min) # Convert to RGB color rane
+                        image = image.cpu().numpy().astype(np.uint8)
+                        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+                        write_path = '{}{}{:03d}{:03d}.png'.format(parameters['imagenet']['test_path'], loader['set'], i,j)            
+                        cv2.imwrite(write_path,image)
 
-            if args.num_images is not None and args.num_images > 0 and (i+1)*args.batch_size >= args.num_images:
+            if parameters['imagenet']['test_images'] is not None and parameters['imagenet']['test_images'] > 0 and (i+1)*parameters['imagenet']['batch_size'] >= parameters['imagenet']['test_images']:
                 print ('test_iterator complete')
                 break
 
