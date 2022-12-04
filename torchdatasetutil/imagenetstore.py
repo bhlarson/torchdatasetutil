@@ -1017,6 +1017,29 @@ ImagenetClasses = ['tench, Tinca tinca',
 'ear, spike, capitulum',
 'toilet tissue, toilet paper, bathroom tissue']
 
+class Normalize(object):
+    """Normalize image.
+
+    Args:
+        normalize image mean and standard deviation
+    """
+
+    def __init__(self, mean, std):
+        self.mean = mean
+        self.std = std
+
+    def __call__(self, sample):
+        for i, channel_mean in enumerate(self.mean):
+            channel_std = self.std[i]
+            imgMean = torch.mean(sample[i])
+            imgStd = torch.std(sample[i])
+            if imgStd > 0.0:
+                sample[i] = (sample[i] - imgMean)/imgStd
+
+            sample[i] = sample[i]*channel_std + channel_mean     
+
+        return sample
+
 def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, resize_width=256, resize_height=256, crop_width=256, crop_height=256, batch_size = 2, shuffle=True, 
                       num_workers=0, cuda = True, timeout=0, loaders = None, 
                       image_transform=None, label_transform=None, 
@@ -1051,9 +1074,10 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, resize_width=256,
                         interpolation=transforms.InterpolationMode.BILINEAR))
             transform_list.append(transforms.RandomCrop( (crop_width, crop_height), padding=None, pad_if_needed=True, fill=0, padding_mode='constant'))
             transform_list.append(transforms.ToTensor())
-            transform_list.append(transforms.Normalize(
-                mean=normalize_mean,
-                std=normalize_std))
+            transform_list.append(Normalize(normalize_mean, normalize_std))
+            # transform_list.append(transforms.Normalize(
+            #     mean=normalize_mean,
+            #     std=normalize_std))
             if augment_noise > 0.0:
                 transform_list.append(AddGaussianNoise(0., augment_noise))
 
@@ -1062,14 +1086,15 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, resize_width=256,
             test_transform = transforms.Compose([
                 ResizePad(resize_width, resize_height),
                 transforms.CenterCrop( (crop_width, crop_height), padding=None, pad_if_needed=True, fill=0, padding_mode='constant'),
-                transforms.ToTensor(), 
-                transforms.Normalize(
-                mean=normalize_mean,
-                std=normalize_std)
+                transforms.ToTensor(),
+                Normalize(normalize_mean, normalize_std),
+                # transforms.Normalize(
+                #     mean=normalize_mean,
+                #     std=normalize_std),
             ])
 
-            width = resize_width
-            height = resize_height
+            width = crop_width
+            height = crop_height
         elif normalize:
             # test_transform = train_transform = transforms.Compose([
             #     ResizePad(width, height),
@@ -1081,12 +1106,13 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, resize_width=256,
                 transforms.Resize(resize_width),
                 transforms.CenterCrop(crop_width),
                 transforms.ToTensor(),
-                transforms.Normalize(
-                    mean=normalize_mean,
-                    std=normalize_std)
+                Normalize(normalize_mean, normalize_std),
+                # transforms.Normalize(
+                #     mean=normalize_mean,
+                #     std=normalize_std),
             ])
-            width = resize_width
-            height = resize_width
+            width = crop_width
+            height = crop_width
         else:
             # test_transform = train_transform = transforms.Compose([
             #     ResizePad(width, height),
@@ -1150,10 +1176,10 @@ def main(args):
                                 args.destination,
                                 augment=parameters['imagenet']['augment'], 
                                 normalize=parameters['imagenet']['normalize'], 
-                                resize_width=parameters['imagenet']['width'], 
-                                resize_height=parameters['imagenet']['height'],
-                                crop_width=parameters['imagenet']['width'], 
-                                crop_height=parameters['imagenet']['height'], 
+                                resize_width=parameters['imagenet']['resize_width'], 
+                                resize_height=parameters['imagenet']['resize_height'],
+                                crop_width=parameters['imagenet']['crop_width'], 
+                                crop_height=parameters['imagenet']['crop_height'], 
                                 batch_size=parameters['imagenet']['batch_size'], 
                                 num_workers=parameters['imagenet']['num_workers'],
                                 flipX=parameters['imagenet']['flipX'], 
