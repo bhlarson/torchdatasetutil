@@ -16,7 +16,8 @@ from pymlutil.s3 import s3store, Connect
 from pymlutil.jsonutil import ReadDict
 from pymlutil.imutil import ImUtil, ImTransform, AddGaussianNoise, ResizePad
 
-from sampler import RASampler
+sys.path.insert(0, os.path.abspath(''))
+from torchdatasetutil.sampler import RASampler
 
 ImagenetClasses = ['tench, Tinca tinca',
 'goldfish, Carassius auratus',
