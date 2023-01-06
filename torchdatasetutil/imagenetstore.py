@@ -16,6 +16,8 @@ from pymlutil.s3 import s3store, Connect
 from pymlutil.jsonutil import ReadDict
 from pymlutil.imutil import ImUtil, ImTransform, AddGaussianNoise, ResizePad
 
+from sampler import RASampler
+
 ImagenetClasses = ['tench, Tinca tinca',
 'goldfish, Carassius auratus',
 'great white shark, white shark, man-eater, man-eating shark, Carcharodon caharias',
@@ -1046,7 +1048,7 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, resize_width=256,
                       augment=True, normalize=False, flipX=True, flipY=False, 
                       random_seed = None, numTries=3,
                       rotate=3, scale_min=0.75, scale_max=1.25, offset=0.1, augment_noise=1.0, 
-                      normalize_mean = [0.485, 0.456, 0.406], normalize_std=[0.229, 0.224, 0.225]):
+                      normalize_mean = [0.485, 0.456, 0.406], normalize_std=[0.229, 0.224, 0.225], ra_reps=4):
 
     if not bucket:
         bucket = s3def['sets']['dataset']['bucket']
@@ -1126,8 +1128,8 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, resize_width=256,
             width = None
             height = None
 
-        default_loaders = [{'set':'train', 'dataset': dest, 'enable_transform':True, 'transform':train_transform},
-                        {'set':'val', 'dataset': dest, 'enable_transform':False, 'transform':test_transform}]
+        default_loaders = [{'set':'train', 'dataset': dest, 'enable_transform':True,  'transform':train_transform, 'sampler':'random',    'shuffle':True},
+                           {'set':'val',   'dataset': dest, 'enable_transform':False, 'transform':test_transform,  'sampler':'sequential', 'shuffle':False}]
 
         loaders = default_loaders
 
@@ -1148,9 +1150,20 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, resize_width=256,
                 if os.path.isfile(impath):
                     imagenet_data.imgs.remove((impath,remove_sample['index']))
 
+        if 'sampler' in loader and loader['sampler'] == 'ra_sampler':
+            train_sampler = RASampler(imagenet_data, shuffle=loader['shuffle'], repetitions=ra_reps)
+        elif 'sampler' in loader and loader['sampler'] == 'distributed':
+            sampler = torch.utils.data.distributed.DistributedSampler(imagenet_data, shuffle=loader['shuffle'])
+        else:
+            if loader['shuffle']:
+                sampler = torch.utils.data.RandomSampler(imagenet_data)
+            else:
+                sampler = torch.utils.data.SequentialSampler(imagenet_data)
+        
+
         loader['dataloader'] = torch.utils.data.DataLoader(imagenet_data,
                                                 batch_size=batch_size,
-                                                shuffle=shuffle,
+                                                sampler=sampler,
                                                 num_workers=num_workers,
                                                 pin_memory=pin_memory)
 
