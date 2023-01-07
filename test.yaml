@@ -41,7 +41,7 @@ imagenet:
   test_path: test/imagenet
   test_images: 10
   num_workers: 0
-  batch_size: 1
+  batch_size: 4
   augment: False
   normalize: True
   resize_height: 256 

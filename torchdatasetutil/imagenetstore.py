@@ -9,14 +9,18 @@ from collections import defaultdict
 import torch
 from tqdm import tqdm
 from torch.utils.data import Dataset
+import torchvision
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 
 from pymlutil.s3 import s3store, Connect
 from pymlutil.jsonutil import ReadDict
 from pymlutil.imutil import ImUtil, ImTransform, AddGaussianNoise, ResizePad
+from torch.utils.data.dataloader import default_collate
+from torchvision.transforms.functional import InterpolationMode
 
 sys.path.insert(0, os.path.abspath(''))
+import mixuptransforms
 from torchdatasetutil.sampler import RASampler
 
 ImagenetClasses = ['tench, Tinca tinca',
@@ -1049,7 +1053,8 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, resize_width=256,
                       augment=True, normalize=False, flipX=True, flipY=False, 
                       random_seed = None, numTries=3,
                       rotate=3, scale_min=0.75, scale_max=1.25, offset=0.1, augment_noise=1.0, 
-                      normalize_mean = [0.485, 0.456, 0.406], normalize_std=[0.229, 0.224, 0.225], ra_reps=4):
+                      normalize_mean = [0.485, 0.456, 0.406], normalize_std=[0.229, 0.224, 0.225], ra_reps=4,
+                      mixup_alpha = 0.0, cutmix_alpha=0.0):
 
     if not bucket:
         bucket = s3def['sets']['dataset']['bucket']
@@ -1129,8 +1134,8 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, resize_width=256,
             width = None
             height = None
 
-        default_loaders = [{'set':'train', 'dataset': dest, 'enable_transform':True,  'transform':train_transform, 'sampler':'random',    'shuffle':True},
-                           {'set':'val',   'dataset': dest, 'enable_transform':False, 'transform':test_transform,  'sampler':'sequential', 'shuffle':False}]
+        default_loaders = [{'set':'train', 'dataset': dest, 'enable_transform':True,  'transform':train_transform, 'sampler':'random', 'shuffle':True, 'mixup': True},
+                           {'set':'val',   'dataset': dest, 'enable_transform':False, 'transform':test_transform,  'sampler':'sequential', 'shuffle':False, 'mixup': True}]
 
         loaders = default_loaders
 
@@ -1160,13 +1165,6 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, resize_width=256,
                 sampler = torch.utils.data.RandomSampler(imagenet_data)
             else:
                 sampler = torch.utils.data.SequentialSampler(imagenet_data)
-        
-
-        loader['dataloader'] = torch.utils.data.DataLoader(imagenet_data,
-                                                batch_size=batch_size,
-                                                sampler=sampler,
-                                                num_workers=num_workers,
-                                                pin_memory=pin_memory)
 
         # Creating PT data samplers and loaders:
         loader['batches'] =int(imagenet_data.__len__()/batch_size)
@@ -1176,6 +1174,26 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, resize_width=256,
         loader['in_channels']=3
         loader['num_classes']=len(ImagenetClasses)
         loader['classes']=ImagenetClasses
+
+        collate_fn = None
+        mixup_transforms = []
+        if loader['mixup'] is True and mixup_alpha > 0.0:
+            mixup_transforms.append(mixuptransforms.RandomMixup(loader['num_classes'], p=1.0, alpha=mixup_alpha))
+        if loader['mixup'] is True and cutmix_alpha > 0.0:
+            mixup_transforms.append(mixuptransforms.RandomCutmix(loader['num_classes'], p=1.0, alpha=cutmix_alpha))
+        if mixup_transforms:
+            mixupcutmix = transforms.RandomChoice(mixup_transforms)
+
+            def collate_fn(batch):
+                return mixupcutmix(*default_collate(batch))
+        
+
+        loader['dataloader'] = torch.utils.data.DataLoader(imagenet_data,
+                                                batch_size=batch_size,
+                                                sampler=sampler,
+                                                num_workers=num_workers,
+                                                pin_memory=pin_memory,
+                                                collate_fn=collate_fn,)
 
     return loaders
 
