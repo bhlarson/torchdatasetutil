@@ -20,7 +20,7 @@ from torch.utils.data.dataloader import default_collate
 from torchvision.transforms.functional import InterpolationMode
 
 sys.path.insert(0, os.path.abspath(''))
-import mixuptransforms
+import torchdatasetutil.mixuptransforms
 from torchdatasetutil.sampler import RASampler
 
 ImagenetClasses = ['tench, Tinca tinca',
