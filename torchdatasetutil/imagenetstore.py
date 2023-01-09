@@ -1047,7 +1047,7 @@ class Normalize(object):
 
         return sample
 
-def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, resize_width=256, resize_height=256, crop_width=256, crop_height=256, batch_size = 2, shuffle=True, 
+def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, resize_width=224, resize_height=224, crop_width=256, crop_height=256, batch_size = 2, shuffle=True, 
                       num_workers=0, cuda = True, timeout=0, loaders = None, 
                       image_transform=None, label_transform=None, 
                       augment=True, normalize=False, flipX=True, flipY=False, 
