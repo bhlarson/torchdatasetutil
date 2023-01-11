@@ -1047,7 +1047,8 @@ class Normalize(object):
 
         return sample
 
-def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, resize_width=224, resize_height=224, crop_width=256, crop_height=256, batch_size = 2, shuffle=True, 
+def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, resize_width=224, 
+                      resize_height=224, crop_width=256, crop_height=256, batch_size = 2, 
                       num_workers=0, cuda = True, timeout=0, loaders = None, 
                       image_transform=None, label_transform=None, 
                       augment=True, normalize=False, flipX=True, flipY=False, 
@@ -1190,8 +1191,8 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, resize_width=224,
 
         loader['dataloader'] = torch.utils.data.DataLoader(imagenet_data,
                                                 batch_size=batch_size,
-                                                sampler=sampler,
-                                                #shuffle=shuffle,
+                                                #sampler=sampler,
+                                                shuffle=loader['shuffle'],
                                                 num_workers=num_workers,
                                                 pin_memory=pin_memory,
                                                 collate_fn=collate_fn,)
