@@ -1192,7 +1192,7 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, resize_width=224,
         loader['dataloader'] = torch.utils.data.DataLoader(imagenet_data,
                                                 batch_size=batch_size,
                                                 #sampler=sampler,
-                                                shuffle=False,
+                                                shuffle=True,
                                                 num_workers=num_workers,
                                                 pin_memory=pin_memory,
                                                 collate_fn=collate_fn,)
