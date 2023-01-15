@@ -1158,7 +1158,7 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, resize_width=224,
                     imagenet_data.imgs.remove((impath,remove_sample['index']))
 
         if 'sampler' in loader and loader['sampler'] == 'ra_sampler':
-            train_sampler = RASampler(imagenet_data, shuffle=loader['shuffle'], repetitions=ra_reps)
+            sampler = RASampler(imagenet_data, shuffle=loader['shuffle'], repetitions=ra_reps)
         elif 'sampler' in loader and loader['sampler'] == 'distributed':
             sampler = torch.utils.data.distributed.DistributedSampler(imagenet_data, shuffle=loader['shuffle'])
         else:
@@ -1192,7 +1192,7 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, resize_width=224,
         loader['dataloader'] = torch.utils.data.DataLoader(imagenet_data,
                                                 batch_size=batch_size,
                                                 #sampler=sampler,
-                                                shuffle=True,
+                                                shuffle=False,
                                                 num_workers=num_workers,
                                                 pin_memory=pin_memory,
                                                 collate_fn=collate_fn,)
