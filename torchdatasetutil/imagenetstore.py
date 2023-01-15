@@ -1136,7 +1136,7 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, resize_width=224,
             height = None
 
         default_loaders = [{'set':'train', 'dataset': dest, 'enable_transform':True,  'transform':train_transform, 'sampler':'random', 'shuffle':True, 'mixup': True},
-                           {'set':'val',   'dataset': dest, 'enable_transform':True, 'transform':test_transform,  'sampler':'sequential', 'shuffle':False, 'mixup': True}]
+                           {'set':'val',   'dataset': dest, 'enable_transform':True, 'transform':test_transform,  'sampler':'sequential', 'shuffle':True, 'mixup': True}]
 
         loaders = default_loaders
 
