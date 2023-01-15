@@ -1136,7 +1136,7 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, resize_width=224,
             height = None
 
         default_loaders = [{'set':'train', 'dataset': dest, 'enable_transform':True,  'transform':train_transform, 'sampler':'random', 'shuffle':True, 'mixup': True},
-                           {'set':'val',   'dataset': dest, 'enable_transform':False, 'transform':test_transform,  'sampler':'sequential', 'shuffle':False, 'mixup': True}]
+                           {'set':'val',   'dataset': dest, 'enable_transform':True, 'transform':test_transform,  'sampler':'sequential', 'shuffle':False, 'mixup': True}]
 
         loaders = default_loaders
 
@@ -1191,8 +1191,8 @@ def CreateImagenetLoaders(s3, s3def, src, dest, bucket = None, resize_width=224,
 
         loader['dataloader'] = torch.utils.data.DataLoader(imagenet_data,
                                                 batch_size=batch_size,
-                                                #sampler=sampler,
-                                                shuffle=True,
+                                                sampler=sampler,
+                                                #shuffle=True,
                                                 num_workers=num_workers,
                                                 pin_memory=pin_memory,
                                                 collate_fn=collate_fn,)
